@@ -155,6 +155,13 @@ export const QARIS: Qari[] = [
     folder: 'Sahl_Yassin_128kbps',      // verified 200
     style: 'Murattal',
   },
+  {
+    id: 'ghamdi',
+    name: 'Saad Al-Ghamdi',
+    arabicName: 'سعد الغامدي',
+    folder: 'Ghamadi_40kbps',           // verified 200 (128kbps was 404)
+    style: 'Murattal',
+  },
 ];
 
 export const DEFAULT_QARI = QARIS[0]; // Mishary Alafasy
