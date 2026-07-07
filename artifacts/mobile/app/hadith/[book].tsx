@@ -9,6 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { LOCAL_HADITHS, HADITH_BOOKS, HADITH_TOPICS } from '@/constants/hadithBooks';
+import PosterModal, { PosterItem } from '@/components/PosterModal';
 
 type Grade = 'all' | 'sahih' | 'hasan' | 'daif';
 const GRADE_FILTERS: Grade[] = ['all', 'sahih', 'hasan', 'daif'];
@@ -22,6 +23,7 @@ export default function HadithBookScreen() {
   const [gradeFilter, setGradeFilter] = useState<Grade>('all');
   const [topicFilter, setTopicFilter] = useState('');
   const [showUrdu, setShowUrdu] = useState(language === 'ur');
+  const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
 
   const bookInfo = HADITH_BOOKS.find(b => b.id === book);
 
@@ -53,6 +55,16 @@ export default function HadithBookScreen() {
   const handleShare = (h: typeof LOCAL_HADITHS[0]) => {
     Share.share({
       message: `${h.arabic}\n\n${h.english}\n\n— ${bookInfo?.name}, ${h.narrator}${h.chapter ? ` · ${h.chapter}` : ''}`,
+    });
+  };
+
+  const handlePoster = (h: typeof LOCAL_HADITHS[0]) => {
+    const eyebrow = `${bookInfo?.name ?? 'Hadith'} · ${h.narrator}${h.chapter ? ` · ${h.chapter}` : ''}`;
+    setPosterItem({
+      eyebrow,
+      ar: h.arabic,
+      en: h.english,
+      ur: showUrdu && h.urdu ? h.urdu : undefined,
     });
   };
 
@@ -189,6 +201,9 @@ export default function HadithBookScreen() {
                     </Text>
                   </View>
                 )}
+                <TouchableOpacity onPress={() => handlePoster(item)} style={styles.shareBtn}>
+                  <Feather name="image" size={14} color={colors.mutedForeground} />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleShare(item)} style={styles.shareBtn}>
                   <Feather name="share-2" size={14} color={colors.mutedForeground} />
                 </TouchableOpacity>
@@ -239,6 +254,13 @@ export default function HadithBookScreen() {
         />
       )}
 
+      {/* ─── Poster Modal ─── */}
+      <PosterModal
+        visible={!!posterItem}
+        item={posterItem}
+        onClose={() => setPosterItem(null)}
+      />
+
       {/* ─── Detail Modal ─── */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
@@ -260,6 +282,11 @@ export default function HadithBookScreen() {
               >
                 <Text style={[styles.urduToggleText, { color: showUrdu ? colors.primary : colors.mutedForeground }]}>اردو</Text>
               </TouchableOpacity>
+              {selected && (
+                <TouchableOpacity onPress={() => handlePoster(selected)} style={styles.modalShareBtn}>
+                  <Feather name="image" size={18} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
               {selected && (
                 <TouchableOpacity onPress={() => handleShare(selected)} style={styles.modalShareBtn}>
                   <Feather name="share-2" size={18} color={colors.mutedForeground} />
