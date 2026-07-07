@@ -2,10 +2,11 @@ export interface Qari {
   id: string;
   name: string;
   arabicName: string;
-  folder: string; // everyayah.com folder name
+  folder: string; // verified everyayah.com folder — all tested 200 OK
   style?: 'Murattal' | 'Mujawwad' | 'Muallim';
 }
 
+// All folders verified live against everyayah.com/data/{folder}/001001.mp3
 export const QARIS: Qari[] = [
   {
     id: 'alafasy',
@@ -25,7 +26,7 @@ export const QARIS: Qari[] = [
     id: 'muaiqly',
     name: 'Maher Al-Muaiqly',
     arabicName: 'ماهر المعيقلي',
-    folder: 'Maher_Al_Muaiqly_128kbps',
+    folder: 'MaherAlMuaiqly128kbps',   // verified 200
     style: 'Murattal',
   },
   {
@@ -39,14 +40,7 @@ export const QARIS: Qari[] = [
     id: 'minshawi',
     name: 'Muhammad Siddiq Al-Minshawi',
     arabicName: 'محمد صديق المنشاوي',
-    folder: 'Menshawi_128kbps',
-    style: 'Murattal',
-  },
-  {
-    id: 'ghamdi',
-    name: 'Saad Al-Ghamdi',
-    arabicName: 'سعد الغامدي',
-    folder: 'Saad_al-Ghamidi_128kbps',
+    folder: 'Menshawi_32kbps',          // verified 200 (128 was 404)
     style: 'Murattal',
   },
   {
@@ -60,14 +54,7 @@ export const QARIS: Qari[] = [
     id: 'abdulbasit_murattal',
     name: 'Abdul Basit (Murattal)',
     arabicName: 'عبد الباسط عبد الصمد',
-    folder: 'AbdulSamad_128kbps_ketaballah.net',
-    style: 'Murattal',
-  },
-  {
-    id: 'shuraim',
-    name: 'Saud Al-Shuraim',
-    arabicName: 'سعود الشريم',
-    folder: 'Saud_ash-Shuraim_128kbps',
+    folder: 'Abdul_Basit_Murattal_64kbps', // verified 200 (old folder was 404)
     style: 'Murattal',
   },
   {
@@ -75,20 +62,6 @@ export const QARIS: Qari[] = [
     name: 'Yasser Al-Dosari',
     arabicName: 'ياسر الدوسري',
     folder: 'Yasser_Ad-Dussary_128kbps',
-    style: 'Murattal',
-  },
-  {
-    id: 'rifai',
-    name: 'Hani Ar-Rifai',
-    arabicName: 'هاني الرفاعي',
-    folder: 'Hani_Ar-Rifai_192kbps',
-    style: 'Murattal',
-  },
-  {
-    id: 'matrood',
-    name: 'Abdullah Al-Matrood',
-    arabicName: 'عبدالله الماطرود',
-    folder: 'Abdullah_Matrood_128kbps',
     style: 'Murattal',
   },
   {
@@ -106,13 +79,6 @@ export const QARIS: Qari[] = [
     style: 'Murattal',
   },
   {
-    id: 'baleela',
-    name: 'Bandar Baleela',
-    arabicName: 'بندر بليلة',
-    folder: 'Bandar_Baleela_192kbps',
-    style: 'Murattal',
-  },
-  {
     id: 'hudhaify',
     name: 'Ali Al-Hudhaifi',
     arabicName: 'علي بن عبدالرحمن الحذيفي',
@@ -127,24 +93,10 @@ export const QARIS: Qari[] = [
     style: 'Murattal',
   },
   {
-    id: 'qahtani',
-    name: 'Khalid Al-Qahtani',
-    arabicName: 'خالد القحطاني',
-    folder: 'Khalid_Al-Qahtani_192kbps',
-    style: 'Murattal',
-  },
-  {
     id: 'qatami',
     name: 'Nasser Al-Qatami',
     arabicName: 'ناصر القطامي',
     folder: 'Nasser_Alqatami_128kbps',
-    style: 'Murattal',
-  },
-  {
-    id: 'kurdi',
-    name: 'Raad Muhammad Al-Kurdi',
-    arabicName: 'رعد محمد الكردي',
-    folder: 'Raad_Mohammad_Al_Kurdi_128kbps',
     style: 'Murattal',
   },
   {
@@ -170,14 +122,42 @@ export const QARIS: Qari[] = [
   },
   {
     id: 'muallim',
-    name: "Al-Husary (Mu'allim)",
+    name: "Al-Husary (Mu'allim / Teaching)",
     arabicName: 'محمود خليل الحصري (معلم)',
     folder: 'Husary_Muallim_128kbps',
     style: 'Muallim',
   },
+  {
+    id: 'budair',
+    name: 'Salah Al-Budair',
+    arabicName: 'صلاح البدير',
+    folder: 'Salah_Al_Budair_128kbps',  // verified 200
+    style: 'Murattal',
+  },
+  {
+    id: 'qahtani',
+    name: 'Khalid Al-Qahtani',
+    arabicName: 'خالد القحطاني',
+    folder: 'Khaalid_Abdullaah_al-Qahtaanee_192kbps', // verified 200
+    style: 'Murattal',
+  },
+  {
+    id: 'akhdar',
+    name: 'Ibrahim Al-Akhdar',
+    arabicName: 'إبراهيم الأخضر',
+    folder: 'Ibrahim_Akhdar_32kbps',    // verified 200
+    style: 'Murattal',
+  },
+  {
+    id: 'sahl',
+    name: 'Sahl Yassin',
+    arabicName: 'سهل ياسين',
+    folder: 'Sahl_Yassin_128kbps',      // verified 200
+    style: 'Murattal',
+  },
 ];
 
-export const DEFAULT_QARI = QARIS[0];
+export const DEFAULT_QARI = QARIS[0]; // Mishary Alafasy
 
 export function getAudioUrl(folder: string, surah: number, ayah: number): string {
   const s = surah.toString().padStart(3, '0');

@@ -133,7 +133,12 @@ export const TRANSLATION_EDITIONS = [
 ];
 
 export const TAFSEER_EDITIONS = [
-  { id: 'en.maududi', name: "Maududi (Tafheemul Quran)", lang: 'en' },
-  { id: 'ar.muyassar', name: 'Al-Muyassar (Arabic)', lang: 'ar' },
-  { id: 'ar.jalalayn', name: "Jalalayn (Arabic)", lang: 'ar' },
+  { id: 'en.maududi',   name: 'Maududi – Tafheem ul Quran',  lang: 'en' },
+  { id: 'ar.muyassar',  name: 'Al-Muyassar (King Fahad)',    lang: 'ar' },
+  { id: 'ar.jalalayn',  name: 'Al-Jalalayn',                 lang: 'ar' },
+  { id: 'ar.qurtubi',   name: 'Al-Qurtubi',                  lang: 'ar' },
+  { id: 'ar.baghawi',   name: 'Al-Baghawi',                  lang: 'ar' },
+  { id: 'ar.waseet',    name: 'Al-Waseet',                   lang: 'ar' },
+  { id: 'ar.miqbas',    name: 'Tanwir al-Miqbas (Ibn Abbas)',lang: 'ar' },
 ];
+// Note: Javed Ahmad Ghamidi tafsir is not available via AlQuran.cloud API.
