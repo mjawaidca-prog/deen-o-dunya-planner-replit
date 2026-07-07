@@ -264,6 +264,8 @@ export default function HadithBookScreen() {
       {/* ─── Detail Modal ─── */}
       <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
         <SafeAreaView style={[styles.modal, { backgroundColor: colors.background }]}>
+          {/* PosterModal lives inside the pageSheet so it can layer above it */}
+          <PosterModal visible={!!posterItem} item={posterItem} onClose={() => setPosterItem(null)} />
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>
