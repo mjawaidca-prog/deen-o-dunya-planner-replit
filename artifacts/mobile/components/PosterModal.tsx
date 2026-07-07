@@ -9,10 +9,12 @@
 
 import React, { useRef, useState } from 'react';
 import {
-  Alert, Modal, Share, StyleSheet, Text,
+  Alert, Dimensions, Modal, ScrollView, Share, StyleSheet, Text,
   TouchableOpacity, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { Feather } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import * as ExpoSharing from 'expo-sharing';
@@ -86,6 +88,11 @@ export default function PosterModal({ visible, item, onClose }: Props) {
           </View>
 
           {/* ── Poster capture area ───────────────────────────── */}
+          <ScrollView
+            style={styles.posterScroll}
+            contentContainerStyle={{ paddingBottom: 4 }}
+            showsVerticalScrollIndicator={false}
+          >
           <View ref={posterRef} collapsable={false} style={styles.captureWrapper}>
             <LinearGradient
               colors={['#FDFAF1', '#F5EDD8', '#F2EAD6']}
@@ -149,6 +156,7 @@ export default function PosterModal({ visible, item, onClose }: Props) {
               </View>
             </LinearGradient>
           </View>
+          </ScrollView>
 
           {/* Action buttons */}
           <View style={styles.actions}>
@@ -189,6 +197,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingBottom: 36,
+    maxHeight: SCREEN_HEIGHT * 0.9,
+  },
+  posterScroll: {
+    flexShrink: 1,
   },
   header: {
     flexDirection: 'row',
