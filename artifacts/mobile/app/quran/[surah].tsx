@@ -7,18 +7,16 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, interpolateColor,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { captureRef } from 'react-native-view-shot';
-import * as ExpoSharing from 'expo-sharing';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAudio } from '@/context/AudioContext';
 import { SURAHS, TRANSLATION_EDITIONS, TAFSEER_EDITIONS } from '@/constants/quranData';
 import { QARIS } from '@/constants/qaris';
+import PosterModal, { PosterItem } from '@/components/PosterModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -154,142 +152,6 @@ const AyahCard = memo(function AyahCard({
   );
 });
 
-// ─── Poster Modal ─────────────────────────────────────────────────────────────
-
-interface PosterProps {
-  visible: boolean;
-  item: Ayah | null;
-  surahName: string;
-  surahNameArabic: string;
-  surahNum: number;
-  colors: ReturnType<typeof import('@/hooks/useColors').useColors>;
-  onClose: () => void;
-}
-
-function PosterModal({ visible, item, surahName, surahNameArabic, surahNum, colors, onClose }: PosterProps) {
-  const posterRef = useRef<View>(null);
-  const [sharing, setSharing] = useState(false);
-
-  const handleShareImage = async () => {
-    if (!posterRef.current) return;
-    setSharing(true);
-    try {
-      const uri = await captureRef(posterRef, {
-        format: 'jpg',
-        quality: 0.95,
-        result: 'tmpfile',
-      });
-      if (await ExpoSharing.isAvailableAsync()) {
-        await ExpoSharing.shareAsync(uri, { mimeType: 'image/jpeg' });
-      } else {
-        Alert.alert('Sharing not supported', 'Your device does not support image sharing.');
-      }
-    } catch (e) {
-      console.warn('Poster capture error:', e);
-      Alert.alert('Error', 'Could not create poster. Try sharing as text instead.');
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleShareText = () => {
-    if (!item) return;
-    const ref = `Quran ${surahName} (${surahNameArabic}) ${surahNum}:${item.numberInSurah}`;
-    Share.share({
-      message: `${item.text}\n\n${item.translation}\n\n— ${ref}\n\n✨ Deen o Dunya`,
-    });
-  };
-
-  if (!item) return null;
-
-  return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={styles.posterOverlay}>
-        <View style={[styles.posterSheet, { backgroundColor: colors.background }]}>
-          {/* Sheet header */}
-          <View style={styles.posterSheetHeader}>
-            <Text style={[styles.posterSheetTitle, { color: colors.foreground }]}>Share Poster</Text>
-            <TouchableOpacity onPress={onClose} style={[styles.posterCloseBtn, { backgroundColor: colors.surfaceAlt }]}>
-              <Feather name="x" size={18} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          </View>
-
-          {/* ── The poster itself — captured by captureRef ── */}
-          <View ref={posterRef} collapsable={false} style={styles.posterCapture}>
-            <LinearGradient
-              colors={['#0A1628', '#0E2340', '#0D3B2E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.posterGradient}
-            >
-              {/* Decorative top band */}
-              <View style={styles.posterTopBand}>
-                <Text style={styles.posterBismillah}>﷽</Text>
-              </View>
-
-              {/* Gold ornament line */}
-              <View style={styles.posterOrnamentRow}>
-                <View style={[styles.posterLine, { backgroundColor: '#C9A84C44' }]} />
-                <Text style={styles.posterStar}>✦</Text>
-                <View style={[styles.posterLine, { backgroundColor: '#C9A84C44' }]} />
-              </View>
-
-              {/* Surah reference badge */}
-              <View style={styles.posterRefRow}>
-                <View style={styles.posterRefBadge}>
-                  <Text style={styles.posterRefText}>
-                    {surahName}  {surahNum}:{item.numberInSurah}
-                  </Text>
-                </View>
-                <Text style={styles.posterRefArabic}>{surahNameArabic}</Text>
-              </View>
-
-              {/* Arabic ayah text */}
-              <Text style={styles.posterArabic}>{item.text}</Text>
-
-              {/* Ornament divider */}
-              <View style={styles.posterOrnamentRow}>
-                <View style={[styles.posterLine, { backgroundColor: '#C9A84C33' }]} />
-                <Text style={[styles.posterStar, { opacity: 0.7 }]}>❧</Text>
-                <View style={[styles.posterLine, { backgroundColor: '#C9A84C33' }]} />
-              </View>
-
-              {/* Translation */}
-              <Text style={styles.posterTranslation}>{item.translation}</Text>
-
-              {/* Footer */}
-              <View style={styles.posterFooter}>
-                <Text style={styles.posterApp}>✨  Deen o Dunya</Text>
-              </View>
-            </LinearGradient>
-          </View>
-
-          {/* Action buttons */}
-          <View style={styles.posterActions}>
-            <TouchableOpacity
-              style={[styles.posterActionBtn, { backgroundColor: colors.primary }]}
-              onPress={handleShareImage}
-              disabled={sharing}
-            >
-              <Feather name="image" size={16} color="#fff" />
-              <Text style={styles.posterActionText}>
-                {sharing ? 'Creating…' : 'Share as Image'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.posterActionBtn, { backgroundColor: colors.surfaceAlt }]}
-              onPress={handleShareText}
-            >
-              <Feather name="share-2" size={16} color={colors.foreground} />
-              <Text style={[styles.posterActionText, { color: colors.foreground }]}>Share as Text</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function QuranSurahScreen() {
@@ -298,7 +160,11 @@ export default function QuranSurahScreen() {
   const surahInfo = SURAHS.find(s => s.id === surahNum);
   const colors    = useColors();
   const { language } = useLanguage();
-  const { play, stop, isPlaying, currentSurah, currentAyah, currentQari, setQari } = useAudio();
+  const {
+    play, stop, isPlaying, currentSurah, currentAyah, currentQari, setQari,
+    audioMode, translationVoice, setAudioMode, setTranslationVoice,
+    translationVoices,
+  } = useAudio();
   const navigation = useNavigation();
 
   const [ayahs,   setAyahs]   = useState<Ayah[]>([]);
@@ -327,7 +193,9 @@ export default function QuranSurahScreen() {
   const [jumpInput,     setJumpInput]     = useState('');
 
   // Poster
-  const [posterItem, setPosterItem] = useState<Ayah | null>(null);
+  const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
+  // Translation audio
+  const [showTranslationVoicePicker, setShowTranslationVoicePicker] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const isSurahPlaying = isPlaying && currentSurah === surahNum;
@@ -499,7 +367,14 @@ export default function QuranSurahScreen() {
       totalAyahs={ayahs.length}
       onBookmark={toggleBookmark}
       onShare={handleShare}
-      onPoster={setPosterItem}
+      onPoster={(ayah) => {
+          const isUrdu = selectedTranslation.id.toLowerCase().includes('ur');
+          setPosterItem({
+            eyebrow: `${surahInfo?.nameEnglish ?? ''} ${surahNum}:${ayah.numberInSurah}`,
+            ar: ayah.text,
+            ...(isUrdu ? { ur: ayah.translation } : { en: ayah.translation }),
+          });
+        }}
       onPlay={(ayah) => play(surahNum, ayah, ayahs.length)}
       onStop={stop}
     />
@@ -658,6 +533,44 @@ export default function QuranSurahScreen() {
               ))}
             </ScrollView>
           )}
+
+          {/* Translation Audio */}
+          <View style={styles.settingRow}>
+            <Text style={[styles.settingLabel, { color: colors.foreground }]}>Audio Mode</Text>
+            <View style={styles.tafsirRow}>
+              <TouchableOpacity
+                style={[styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt }, audioMode === 'arabic' && { backgroundColor: colors.primary + '33', borderColor: colors.primary }]}
+                onPress={() => { setAudioMode('arabic'); setShowTranslationVoicePicker(false); }}
+              >
+                <Text style={[styles.tafsirEdText, { color: audioMode === 'arabic' ? colors.primary : colors.mutedForeground }]}>Arabic</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt }, audioMode === 'translation' && { backgroundColor: colors.primary + '33', borderColor: colors.primary }]}
+                onPress={() => setShowTranslationVoicePicker(v => !v)}
+              >
+                <Text style={[styles.tafsirEdText, { color: audioMode === 'translation' ? colors.primary : colors.mutedForeground }]}>
+                  {translationVoice ? translationVoice.name.split(' ')[0] : 'Translation ▾'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {showTranslationVoicePicker && (
+            <View style={[styles.dropdownList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {translationVoices.map(v => (
+                <TouchableOpacity
+                  key={v.id}
+                  style={[styles.dropdownItem, translationVoice?.id === v.id && { backgroundColor: colors.primary + '22' }]}
+                  onPress={() => { setTranslationVoice(v); setShowTranslationVoicePicker(false); }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dropdownText, { color: translationVoice?.id === v.id ? colors.primary : colors.foreground }]}>{v.name}</Text>
+                    <Text style={[styles.dropdownSub, { color: colors.mutedForeground }]}>{v.langLabel} · {v.sub}</Text>
+                  </View>
+                  {translationVoice?.id === v.id && <Feather name="check" size={14} color={colors.primary} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
@@ -715,10 +628,6 @@ export default function QuranSurahScreen() {
       <PosterModal
         visible={posterItem !== null}
         item={posterItem}
-        surahName={surahInfo?.nameEnglish ?? ''}
-        surahNameArabic={surahInfo?.name ?? ''}
-        surahNum={surahNum}
-        colors={colors}
         onClose={() => setPosterItem(null)}
       />
     </SafeAreaView>
@@ -786,36 +695,4 @@ const styles = StyleSheet.create({
   jumpInput: { width: '100%', borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 20, textAlign: 'center' },
   jumpBtn: { width: '100%', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
 
-  // Poster modal
-  posterOverlay: { flex: 1, backgroundColor: '#000000CC', justifyContent: 'flex-end' },
-  posterSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 36 },
-  posterSheetHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-  },
-  posterSheetTitle: { fontSize: 18, fontWeight: '700' },
-  posterCloseBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  posterCapture: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden' },
-  posterGradient: { padding: 28 },
-  posterTopBand: { alignItems: 'center', marginBottom: 12 },
-  posterBismillah: { fontSize: 26, color: '#C9A84C', textAlign: 'center' },
-  posterOrnamentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12 },
-  posterLine: { flex: 1, height: 1 },
-  posterStar: { fontSize: 14, color: '#C9A84C' },
-  posterRefRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  posterRefBadge: { backgroundColor: '#C9A84C22', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 5 },
-  posterRefText: { color: '#C9A84C', fontSize: 12, fontWeight: '700' },
-  posterRefArabic: { color: '#C9A84C', fontSize: 14, fontWeight: '700' },
-  posterArabic: { color: '#F0EDE5', fontSize: 22, textAlign: 'right', lineHeight: 40, fontWeight: '500', marginBottom: 16 },
-  posterTranslation: { color: 'rgba(240,237,229,0.82)', fontSize: 13, lineHeight: 22, textAlign: 'center' },
-  posterFooter: { alignItems: 'center', marginTop: 20 },
-  posterApp: { color: 'rgba(201,168,76,0.7)', fontSize: 12, letterSpacing: 1 },
-  posterActions: {
-    flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 16,
-  },
-  posterActionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, paddingVertical: 13, borderRadius: 14,
-  },
-  posterActionText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

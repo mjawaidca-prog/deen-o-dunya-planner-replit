@@ -17,6 +17,25 @@ const FEATURES = [
   { icon: '✨', label: 'namesOfAllah', route: '/names', color: '#9333EA', desc: 'Asmaul Husna' },
 ];
 
+const SPECIAL_FEATURES = [
+  {
+    icon: '⭐',
+    label: 'Kids Mode',
+    route: '/quran/kids',
+    color: '#F59E0B',
+    desc: 'Short surahs & daily duas',
+    badge: 'NEW',
+  },
+  {
+    icon: '🌙',
+    label: 'Ramadan Tracker',
+    route: '/planner/ramadan',
+    color: '#0C5A3B',
+    desc: 'Fast & Taraweeh log',
+    badge: 'NEW',
+  },
+];
+
 export default function MoreTab() {
   const colors = useColors();
   const { t } = useLanguage();
@@ -42,6 +61,28 @@ export default function MoreTab() {
             </View>
           </View>
         )}
+
+        {/* Special Features Row */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Featured</Text>
+        <View style={styles.specialRow}>
+          {SPECIAL_FEATURES.map(f => (
+            <TouchableOpacity
+              key={f.route}
+              style={[styles.specialTile, { backgroundColor: f.color }]}
+              onPress={() => router.push(f.route as any)}
+              activeOpacity={0.85}
+            >
+              {f.badge && (
+                <View style={styles.badgeWrap}>
+                  <Text style={styles.badgeText}>{f.badge}</Text>
+                </View>
+              )}
+              <Text style={styles.specialIcon}>{f.icon}</Text>
+              <Text style={styles.specialLabel}>{f.label}</Text>
+              <Text style={styles.specialDesc}>{f.desc}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Feature Grid */}
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Islamic Tools</Text>
@@ -102,5 +143,12 @@ const styles = StyleSheet.create({
   settingsEmoji: { fontSize: 28 },
   settingsInfo: { flex: 1 },
   settingsLabel: { fontSize: 15, fontWeight: '700' },
+  specialRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginBottom: 20 },
+  specialTile: { flex: 1, borderRadius: 18, padding: 16, gap: 6, position: 'relative', overflow: 'hidden' },
+  specialIcon: { fontSize: 32 },
+  specialLabel: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  specialDesc: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+  badgeWrap: { position: 'absolute', top: 10, right: 10, backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
+  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
   settingsSub: { fontSize: 12, marginTop: 2 },
 });

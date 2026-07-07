@@ -52,6 +52,10 @@ function RootLayoutNav() {
       <Stack.Screen name="seerah/index" options={{ title: 'Seerah' }} />
       <Stack.Screen name="masjid/index" options={{ title: 'Nearby Masjids' }} />
       <Stack.Screen name="prayer/index" options={{ title: 'Prayer Times' }} />
+
+      {/* Kids mode & Ramadan */}
+      <Stack.Screen name="quran/kids" options={{ title: 'Kids Quran', headerShown: false }} />
+      <Stack.Screen name="planner/ramadan" options={{ title: 'Ramadan Tracker', headerShown: false }} />
     </Stack>
   );
 }
