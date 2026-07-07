@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deenodunya.planner",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": ["audio", "fetch"],
         "NSLocationWhenInUseUsageDescription": "Your location is used to calculate accurate prayer times and find nearby mosques.",
