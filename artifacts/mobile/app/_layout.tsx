@@ -33,8 +33,16 @@ function RootLayoutNav() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Quran */}
       <Stack.Screen name="quran/[surah]" options={{ title: 'Quran Reader' }} />
+      <Stack.Screen name="quran/search" options={{ title: 'Search Quran' }} />
+      <Stack.Screen name="quran/bookmarks" options={{ title: 'Bookmarked Ayahs' }} />
+
+      {/* Hadith */}
       <Stack.Screen name="hadith/[book]" options={{ title: 'Hadith' }} />
+
+      {/* Settings & tools */}
       <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
       <Stack.Screen name="qibla/index" options={{ title: 'Qibla Direction' }} />
       <Stack.Screen name="tasbeeh/index" options={{ title: 'Tasbeeh' }} />
