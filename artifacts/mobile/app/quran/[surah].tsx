@@ -200,6 +200,11 @@ export default function QuranSurahScreen() {
   const flatListRef = useRef<FlatList>(null);
   const isSurahPlaying = isPlaying && currentSurah === surahNum;
 
+  // ── Auto-hide settings panel when playback starts ─────────────────────────
+  useEffect(() => {
+    if (isSurahPlaying) setShowSettings(false);
+  }, [isSurahPlaying]);
+
   // ── Load persisted settings ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
@@ -538,18 +543,27 @@ export default function QuranSurahScreen() {
           <View style={styles.settingRow}>
             <Text style={[styles.settingLabel, { color: colors.foreground }]}>Audio Mode</Text>
             <View style={styles.tafsirRow}>
+              {/* Arabic only */}
               <TouchableOpacity
                 style={[styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt }, audioMode === 'arabic' && { backgroundColor: colors.primary + '33', borderColor: colors.primary }]}
                 onPress={() => { setAudioMode('arabic'); setShowTranslationVoicePicker(false); }}
               >
                 <Text style={[styles.tafsirEdText, { color: audioMode === 'arabic' ? colors.primary : colors.mutedForeground }]}>Arabic</Text>
               </TouchableOpacity>
+              {/* Both: Arabic then Translation */}
+              <TouchableOpacity
+                style={[styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt }, audioMode === 'both' && { backgroundColor: colors.gold + '33', borderColor: colors.gold }]}
+                onPress={() => { setAudioMode('both'); setShowTranslationVoicePicker(true); }}
+              >
+                <Text style={[styles.tafsirEdText, { color: audioMode === 'both' ? colors.gold : colors.mutedForeground }]}>Both ✦</Text>
+              </TouchableOpacity>
+              {/* Translation only */}
               <TouchableOpacity
                 style={[styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt }, audioMode === 'translation' && { backgroundColor: colors.primary + '33', borderColor: colors.primary }]}
-                onPress={() => setShowTranslationVoicePicker(v => !v)}
+                onPress={() => { setAudioMode('translation'); setShowTranslationVoicePicker(true); }}
               >
                 <Text style={[styles.tafsirEdText, { color: audioMode === 'translation' ? colors.primary : colors.mutedForeground }]}>
-                  {translationVoice ? translationVoice.name.split(' ')[0] : 'Translation ▾'}
+                  {translationVoice && audioMode !== 'arabic' ? translationVoice.name.split(' ')[0] : 'Translation ▾'}
                 </Text>
               </TouchableOpacity>
             </View>

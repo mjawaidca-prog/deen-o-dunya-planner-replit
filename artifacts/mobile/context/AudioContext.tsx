@@ -1,14 +1,16 @@
 /**
  * AudioContext — Quran audio playback engine
  *
- * Supports two audio modes:
- *  - 'arabic'      → plays the reciter's Arabic recitation (everyayah.com/data/{folder})
- *  - 'translation' → plays a translation voice (Urdu / English) from the same CDN
+ * Supports three audio modes:
+ *  - 'arabic'      → plays the reciter's Arabic recitation
+ *  - 'translation' → plays a translation voice (Urdu / English)
+ *  - 'both'        → plays Arabic first, then translation, then advances
  *
- * Race-condition fixes (see comments):
- *  - currentQariRef, audioModeRef, translationVoiceRef — always current, no stale closures
- *  - onPlaybackStatusUpdate has [] deps — reads only refs, never state
- *  - playRef lets onPlaybackStatusUpdate call play() without circular useCallback deps
+ * Race-condition fixes:
+ *  - All values read inside onPlaybackStatusUpdate live in refs (never stale closures)
+ *  - onPlaybackStatusUpdate has [] deps — reads only refs
+ *  - playRef / playBothPhase2Ref let the status callback schedule the next sound
+ *  - isTranslationPhaseRef tracks whether we are in the translation half of a 'both' cycle
  */
 
 import React, {
@@ -20,7 +22,7 @@ import {
   TRANSLATION_VOICES, TranslationVoice, translationAudioUrl,
 } from '@/constants/translationVoices';
 
-type AudioMode = 'arabic' | 'translation';
+export type AudioMode = 'arabic' | 'translation' | 'both';
 
 interface AudioContextType {
   // State
@@ -57,13 +59,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const soundRef = useRef<Audio.Sound | null>(null);
 
   // ── Mutable refs — always current, no stale closure lag ─────────────────
-  const currentQariRef        = useRef<Qari>(DEFAULT_QARI);
-  const currentSurahRef       = useRef(1);
-  const currentAyahRef        = useRef(1);
-  const totalAyahsRef         = useRef(7);
-  const audioModeRef          = useRef<AudioMode>('arabic');
-  const translationVoiceRef   = useRef<TranslationVoice | null>(null);
-  const playRef               = useRef<((s: number, a: number, t: number) => Promise<void>) | null>(null);
+  const currentQariRef          = useRef<Qari>(DEFAULT_QARI);
+  const currentSurahRef         = useRef(1);
+  const currentAyahRef          = useRef(1);
+  const totalAyahsRef           = useRef(7);
+  const audioModeRef            = useRef<AudioMode>('arabic');
+  const translationVoiceRef     = useRef<TranslationVoice | null>(null);
+  const isTranslationPhaseRef   = useRef(false); // true while playing translation in 'both' mode
+  const playRef                 = useRef<((s: number, a: number, t: number) => Promise<void>) | null>(null);
+  const playBothPhase2Ref       = useRef<(() => Promise<void>) | null>(null);
 
   // ── React state — drives UI ──────────────────────────────────────────────
   const [isPlaying,        setIsPlaying]        = useState(false);
@@ -95,23 +99,41 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Advance to next ayah — shared between modes
+  const advanceToNext = () => {
+    isTranslationPhaseRef.current = false;
+    const next = currentAyahRef.current + 1;
+    if (next <= totalAyahsRef.current) {
+      currentAyahRef.current = next;
+      setCurrentAyah(next);
+      playRef.current?.(currentSurahRef.current, next, totalAyahsRef.current);
+    } else {
+      setIsPlaying(false);
+    }
+  };
+
   // ── Playback callback — zero deps, uses refs only ───────────────────────
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
     setIsPlaying(status.isPlaying);
     setPosition(status.positionMillis);
     setDuration(status.durationMillis ?? 0);
+
     if (status.didJustFinish) {
-      const next = currentAyahRef.current + 1;
-      if (next <= totalAyahsRef.current) {
-        currentAyahRef.current = next;
-        setCurrentAyah(next);
-        playRef.current?.(currentSurahRef.current, next, totalAyahsRef.current);
+      if (
+        audioModeRef.current === 'both' &&
+        !isTranslationPhaseRef.current &&
+        translationVoiceRef.current
+      ) {
+        // Arabic finished → play translation for same ayah
+        isTranslationPhaseRef.current = true;
+        playBothPhase2Ref.current?.();
       } else {
-        setIsPlaying(false);
+        // Translation finished (or single-mode) → advance to next ayah
+        advanceToNext();
       }
     }
-  }, []);
+  }, []);  // [] — safe because we only read refs
 
   // ── play() — reads refs so qari/mode changes are always instant ──────────
   const play = useCallback(async (surah: number, ayah: number, total: number) => {
@@ -119,13 +141,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setCurrentSurah(surah);   currentSurahRef.current = surah;
     setCurrentAyah(ayah);     currentAyahRef.current  = ayah;
     setTotalAyahs(total);     totalAyahsRef.current   = total;
+    isTranslationPhaseRef.current = false; // always start with Arabic phase
+
     try {
       await unloadCurrent();
-      // Choose URL based on current mode
+      // In 'both' mode we always start by playing Arabic
       let url: string;
       if (audioModeRef.current === 'translation' && translationVoiceRef.current) {
         url = translationAudioUrl(translationVoiceRef.current, surah, ayah);
       } else {
+        // 'arabic' or 'both' — start with Arabic recitation
         url = getAudioUrl(currentQariRef.current.folder, surah, ayah);
       }
       const { sound } = await Audio.Sound.createAsync(
@@ -142,11 +167,35 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   }, [onPlaybackStatusUpdate]);
 
+  // ── playBothPhase2 — plays translation for current ayah (called from status callback) ──
+  const playBothPhase2 = useCallback(async () => {
+    if (!translationVoiceRef.current) { advanceToNext(); return; }
+    try {
+      const url = translationAudioUrl(
+        translationVoiceRef.current,
+        currentSurahRef.current,
+        currentAyahRef.current,
+      );
+      await unloadCurrent();
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: url },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate,
+      );
+      soundRef.current = sound;
+      setIsPlaying(true);
+    } catch (e) {
+      console.warn('Translation phase error:', e);
+      advanceToNext(); // on network error, skip translation and advance
+    }
+  }, [onPlaybackStatusUpdate]);
+
   useEffect(() => { playRef.current = play; }, [play]);
+  useEffect(() => { playBothPhase2Ref.current = playBothPhase2; }, [playBothPhase2]);
 
   const pause  = async () => { try { await soundRef.current?.pauseAsync(); } catch {} setIsPlaying(false); };
   const resume = async () => { try { await soundRef.current?.playAsync();  } catch {} setIsPlaying(true);  };
-  const stop   = async () => { await unloadCurrent(); setIsPlaying(false); setPosition(0); };
+  const stop   = async () => { await unloadCurrent(); setIsPlaying(false); setPosition(0); isTranslationPhaseRef.current = false; };
 
   const playNext = async () => {
     if (currentAyahRef.current < totalAyahsRef.current)
@@ -173,9 +222,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const setTranslationVoice = useCallback((voice: TranslationVoice) => {
     translationVoiceRef.current = voice;
     setTranslationVoiceState(voice);
-    // Auto-switch to translation mode when a voice is selected
-    audioModeRef.current = 'translation';
-    setAudioModeState('translation');
+    // Auto-switch to 'both' mode when a translation voice is selected (and currently arabic)
+    if (audioModeRef.current === 'arabic') {
+      audioModeRef.current = 'both';
+      setAudioModeState('both');
+    }
   }, []);
 
   return (

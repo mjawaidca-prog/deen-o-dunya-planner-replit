@@ -90,5 +90,26 @@ Prominent green banner "Search Quran Verses" navigates to `/quran/search`. Separ
 - `duasData.ts`: `DUA_CATEGORIES: string[]` (flat); `DUAS[]` with `title, category, arabic, transliteration, english, urdu, reference`
 - `namesData.ts`: `NAMES_OF_ALLAH[]` with `id, arabic, transliteration, meaning, urduMeaning, benefit`
 - `seerahData.ts`: `SEERAH_STORIES[]` — no `subtitle` field; uses `arabicTitle`
-- `hadithBooks.ts`: `LOCAL_HADITHS[]` with `id, bookId, number, arabic, english, urdu, grade, narrator, chapter?` — no `reference` field; `HADITH_BOOKS[]` has `color` field
+- `hadithBooks.ts`: `LOCAL_HADITHS[]` — interface now has `topics: string[]` and `albanGrade?: string`; `HADITH_BOOKS[]` has 9 books (added `qudsi`); `HADITH_TOPICS[]` has 14 topics. ~195 hadiths total.
 - `qaris.ts`: `QARIS[]` with `id, name, arabicName, folder, style?` — 22 reciters (all verified 200)
+
+## Audio Mode — 'both' (dual bilingual playback)
+`AudioMode = 'arabic' | 'translation' | 'both'`. In 'both': plays Arabic recitation for ayah N, then translation for same ayah N, then advances to N+1.
+- `isTranslationPhaseRef` — tracks whether we are in the translation half of a 'both' cycle (reset to false in `play()`, `stop()`, `advanceToNext()`)
+- `playBothPhase2Ref` — ref to `playBothPhase2` callback; called from `onPlaybackStatusUpdate` (zero deps) when Arabic finishes in 'both' mode
+- On translation network error in phase 2: skips translation, advances to next ayah
+- `setTranslationVoice()` now auto-switches to 'both' (not 'translation') when a voice is selected and mode is currently 'arabic'
+- [surah].tsx settings row: three buttons Arabic | Both ✦ | Translation
+- When `isSurahPlaying` becomes true, `showSettings` is auto-set to false (useEffect)
+
+## Quran Search — PosterModal
+`app/quran/search.tsx` now has a camera icon (Feather "image") next to share in each result card. Tapping opens `PosterModal` with the ayah's Arabic + translation. `lang.id` determines whether translation goes in `en` or `ur` field of PosterItem.
+
+## Hadith — topic filter + Albani grading
+`app/hadith/[book].tsx` now has:
+- Horizontal `ScrollView` topic chip row (HADITH_TOPICS, 14 topics)
+- `topicFilter` state; filter chips on each card are tappable
+- `useMemo` filters by `h.topics.includes(topicFilter)`
+- Search extended to `h.urdu` and `h.topics` fields
+- Detail modal shows `albanGrade` in refCard and topics chips
+- Card shows topic chips (first 3, tappable to filter)

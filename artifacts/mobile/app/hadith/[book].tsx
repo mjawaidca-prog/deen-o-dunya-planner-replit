@@ -8,7 +8,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
-import { LOCAL_HADITHS, HADITH_BOOKS } from '@/constants/hadithBooks';
+import { LOCAL_HADITHS, HADITH_BOOKS, HADITH_TOPICS } from '@/constants/hadithBooks';
 
 type Grade = 'all' | 'sahih' | 'hasan' | 'daif';
 const GRADE_FILTERS: Grade[] = ['all', 'sahih', 'hasan', 'daif'];
@@ -20,6 +20,7 @@ export default function HadithBookScreen() {
   const [selected, setSelected] = useState<(typeof LOCAL_HADITHS)[0] | null>(null);
   const [query, setQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState<Grade>('all');
+  const [topicFilter, setTopicFilter] = useState('');
   const [showUrdu, setShowUrdu] = useState(language === 'ur');
 
   const bookInfo = HADITH_BOOKS.find(b => b.id === book);
@@ -27,17 +28,20 @@ export default function HadithBookScreen() {
   const hadiths = useMemo(() => {
     let list = LOCAL_HADITHS.filter(h => h.bookId === book);
     if (gradeFilter !== 'all') list = list.filter(h => h.grade === gradeFilter);
+    if (topicFilter) list = list.filter(h => h.topics.includes(topicFilter));
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(h =>
         h.english.toLowerCase().includes(q) ||
         h.arabic.includes(q) ||
+        h.urdu.includes(q) ||
         h.narrator.toLowerCase().includes(q) ||
-        (h.chapter?.toLowerCase().includes(q) ?? false),
+        (h.chapter?.toLowerCase().includes(q) ?? false) ||
+        h.topics.some(t => t.toLowerCase().includes(q)),
       );
     }
     return list;
-  }, [book, query, gradeFilter]);
+  }, [book, query, gradeFilter, topicFilter]);
 
   const gradeColor = (grade: string) => {
     if (grade === 'sahih') return '#2D9B6B';
@@ -51,11 +55,6 @@ export default function HadithBookScreen() {
       message: `${h.arabic}\n\n${h.english}\n\n— ${bookInfo?.name}, ${h.narrator}${h.chapter ? ` · ${h.chapter}` : ''}`,
     });
   };
-
-  const chapterGroups = useMemo(() => {
-    const chapters = new Set(hadiths.map(h => h.chapter ?? 'General'));
-    return Array.from(chapters);
-  }, [hadiths]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -78,7 +77,7 @@ export default function HadithBookScreen() {
         <Feather name="search" size={15} color={colors.mutedForeground} />
         <TextInput
           style={[styles.searchInput, { color: colors.foreground }]}
-          placeholder="Search by keyword, narrator, chapter…"
+          placeholder="Search by keyword, narrator, chapter, prophet…"
           placeholderTextColor={colors.mutedForeground}
           value={query}
           onChangeText={setQuery}
@@ -90,7 +89,43 @@ export default function HadithBookScreen() {
         )}
       </View>
 
-      {/* Filters */}
+      {/* Topic chips — horizontal scroll */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.topicRow}
+      >
+        <TouchableOpacity
+          style={[
+            styles.topicChip,
+            { backgroundColor: topicFilter === '' ? colors.primary : colors.surfaceAlt },
+          ]}
+          onPress={() => setTopicFilter('')}
+        >
+          <Text style={[styles.topicText, { color: topicFilter === '' ? '#fff' : colors.mutedForeground }]}>
+            All Topics
+          </Text>
+        </TouchableOpacity>
+        {HADITH_TOPICS.map(t => {
+          const active = topicFilter === t.id;
+          return (
+            <TouchableOpacity
+              key={t.id}
+              style={[
+                styles.topicChip,
+                { backgroundColor: active ? colors.primary : colors.surfaceAlt },
+              ]}
+              onPress={() => setTopicFilter(active ? '' : t.id)}
+            >
+              <Text style={[styles.topicText, { color: active ? '#fff' : colors.mutedForeground }]}>
+                {t.icon} {t.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Grade filters */}
       <View style={styles.filterRow}>
         {GRADE_FILTERS.map(g => (
           <TouchableOpacity
@@ -119,7 +154,9 @@ export default function HadithBookScreen() {
         <View style={styles.empty}>
           <Text style={{ fontSize: 44 }}>📭</Text>
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            {query ? `No results for "${query}"` : 'No hadiths match this filter'}
+            {query || topicFilter
+              ? `No results for "${query || HADITH_TOPICS.find(t => t.id === topicFilter)?.label}"`
+              : 'No hadiths match this filter'}
           </Text>
         </View>
       ) : (
@@ -128,7 +165,7 @@ export default function HadithBookScreen() {
           keyExtractor={h => h.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: colors.card }]}
               onPress={() => setSelected(item)}
@@ -142,6 +179,7 @@ export default function HadithBookScreen() {
                 <View style={[styles.gradeBadge, { backgroundColor: gradeColor(item.grade) + '22' }]}>
                   <Text style={[styles.gradeText, { color: gradeColor(item.grade) }]}>
                     {item.grade.charAt(0).toUpperCase() + item.grade.slice(1)}
+                    {item.albanGrade ? ` · Albani: ${item.albanGrade}` : ''}
                   </Text>
                 </View>
                 {item.chapter && (
@@ -170,6 +208,30 @@ export default function HadithBookScreen() {
               <Text style={[styles.narrator, { color: colors.gold }]}>
                 — {item.narrator}
               </Text>
+
+              {/* Topic chips */}
+              {item.topics.length > 0 && (
+                <View style={styles.cardTopicRow}>
+                  {item.topics.slice(0, 3).map(tid => {
+                    const t = HADITH_TOPICS.find(x => x.id === tid);
+                    if (!t) return null;
+                    return (
+                      <TouchableOpacity
+                        key={tid}
+                        style={[styles.cardTopicChip, {
+                          backgroundColor: topicFilter === tid ? colors.primary + '22' : colors.surfaceAlt,
+                          borderColor: topicFilter === tid ? colors.primary : 'transparent',
+                        }]}
+                        onPress={() => setTopicFilter(topicFilter === tid ? '' : tid)}
+                      >
+                        <Text style={[styles.cardTopicText, { color: topicFilter === tid ? colors.primary : colors.mutedForeground }]}>
+                          {t.icon} {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </TouchableOpacity>
           )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
@@ -216,6 +278,7 @@ export default function HadithBookScreen() {
                 <View style={[styles.gradeBadge, { backgroundColor: gradeColor(selected.grade) + '22' }]}>
                   <Text style={[styles.gradeText, { color: gradeColor(selected.grade) }]}>
                     {selected.grade.charAt(0).toUpperCase() + selected.grade.slice(1)}
+                    {selected.albanGrade ? ` · Albani: ${selected.albanGrade}` : ''}
                   </Text>
                 </View>
                 <Text style={[styles.modalNarrator, { color: colors.gold }]}>
@@ -268,7 +331,28 @@ export default function HadithBookScreen() {
                     <Text style={[styles.refVal, { color: colors.foreground }]}>{selected.chapter}</Text>
                   </View>
                 )}
+                {selected.albanGrade && (
+                  <View style={styles.refRow}>
+                    <Text style={[styles.refLabel, { color: colors.mutedForeground }]}>🏷️  Albani</Text>
+                    <Text style={[styles.refVal, { color: gradeColor(selected.albanGrade.toLowerCase()) }]}>{selected.albanGrade}</Text>
+                  </View>
+                )}
               </View>
+
+              {/* Topics */}
+              {selected.topics.length > 0 && (
+                <View style={styles.topicDetailRow}>
+                  {selected.topics.map(tid => {
+                    const t = HADITH_TOPICS.find(x => x.id === tid);
+                    if (!t) return null;
+                    return (
+                      <View key={tid} style={[styles.cardTopicChip, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '44' }]}>
+                        <Text style={[styles.cardTopicText, { color: colors.primary }]}>{t.icon} {t.label}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </ScrollView>
           )}
         </SafeAreaView>
@@ -291,10 +375,18 @@ const styles = StyleSheet.create({
     borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9,
   },
   searchInput: { flex: 1, fontSize: 14 },
+
+  // Topic chips
+  topicRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 8 },
+  topicChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  topicText: { fontSize: 12, fontWeight: '600' },
+
+  // Grade filters
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginBottom: 8, flexWrap: 'wrap' },
   filterPill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   filterText: { fontSize: 12, fontWeight: '600' },
   countLabel: { fontSize: 11, marginLeft: 'auto' },
+
   list: { paddingHorizontal: 16 },
   card: { borderRadius: 14, padding: 14 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' },
@@ -307,7 +399,13 @@ const styles = StyleSheet.create({
   shareBtn: { padding: 4, marginLeft: 'auto' },
   arabicText: { fontSize: 16, textAlign: 'right', lineHeight: 28, marginBottom: 8 },
   engText: { fontSize: 13, lineHeight: 21, marginBottom: 6 },
-  narrator: { fontSize: 12, fontWeight: '500' },
+  narrator: { fontSize: 12, fontWeight: '500', marginBottom: 8 },
+
+  // Card topic chips
+  cardTopicRow: { flexDirection: 'row', gap: 4, flexWrap: 'wrap', marginTop: 4 },
+  cardTopicChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1 },
+  cardTopicText: { fontSize: 10, fontWeight: '600' },
+
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
   emptyText: { fontSize: 14, textAlign: 'center' },
 
@@ -337,4 +435,5 @@ const styles = StyleSheet.create({
   refRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   refLabel: { fontSize: 12, width: 80 },
   refVal: { fontSize: 12, fontWeight: '600', flex: 1 },
+  topicDetailRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

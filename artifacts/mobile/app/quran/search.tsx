@@ -9,6 +9,7 @@ import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useColors';
 import { SURAHS } from '@/constants/quranData';
+import PosterModal, { PosterItem } from '@/components/PosterModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,7 @@ export default function QuranSearchScreen() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set());
+  const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
   const inputRef = useRef<TextInput>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -242,6 +244,15 @@ export default function QuranSearchScreen() {
     } catch { /* user cancelled */ }
   }, [lang]);
 
+  const handlePoster = useCallback((item: EnrichedResult) => {
+    const isUrdu = lang.id === 'ur';
+    setPosterItem({
+      eyebrow: `${item.surah.englishName} ${item.surah.number}:${item.numberInSurah}`,
+      ar: item.arabic || item.text,
+      ...(isUrdu ? { ur: item.text } : { en: lang.id === 'ar' ? undefined : item.text }),
+    });
+  }, [lang]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   const renderResult = useCallback(({ item }: { item: EnrichedResult }) => {
     const bKey = `${item.surah.number}:${item.numberInSurah}`;
@@ -276,6 +287,9 @@ export default function QuranSearchScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleShare(item)} style={styles.actionBtn}>
               <Feather name="share-2" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handlePoster(item)} style={styles.actionBtn}>
+              <Feather name="image" size={16} color={colors.mutedForeground} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.openBtn, { backgroundColor: colors.primary }]}
@@ -315,7 +329,7 @@ export default function QuranSearchScreen() {
         </Text>
       </View>
     );
-  }, [bookmarkedKeys, lang, colors, query, handleBookmark, handleShare]);
+  }, [bookmarkedKeys, lang, colors, query, handleBookmark, handleShare, handlePoster]);
 
   // ── Empty / loading / error states ──────────────────────────────────────────
 
@@ -447,6 +461,13 @@ export default function QuranSearchScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── Poster modal ── */}
+      <PosterModal
+        visible={posterItem !== null}
+        item={posterItem}
+        onClose={() => setPosterItem(null)}
+      />
 
       {/* ── Results ── */}
       <FlatList
