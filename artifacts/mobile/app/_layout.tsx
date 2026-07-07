@@ -5,34 +5,52 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
+  Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts,
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { AppProvider } from '@/context/AppContext';
+import { PrayerProvider } from '@/context/PrayerContext';
+import { AudioProvider } from '@/context/AudioContext';
+import AudioPlayerBar from '@/components/AudioPlayerBar';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back' }}>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: '#0A1628' },
+        headerTintColor: '#F0EDE5',
+        headerBackTitle: 'Back',
+        contentStyle: { backgroundColor: '#0A1628' },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="quran/[surah]" options={{ title: 'Quran Reader' }} />
+      <Stack.Screen name="hadith/[book]" options={{ title: 'Hadith' }} />
+      <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />
+      <Stack.Screen name="qibla/index" options={{ title: 'Qibla Direction' }} />
+      <Stack.Screen name="tasbeeh/index" options={{ title: 'Tasbeeh' }} />
+      <Stack.Screen name="zakat/index" options={{ title: 'Zakat Calculator' }} />
+      <Stack.Screen name="names/index" options={{ title: '99 Names of Allah' }} />
+      <Stack.Screen name="duas/index" options={{ title: 'Duas & Adhkar' }} />
+      <Stack.Screen name="seerah/index" options={{ title: 'Seerah' }} />
+      <Stack.Screen name="masjid/index" options={{ title: 'Nearby Masjids' }} />
+      <Stack.Screen name="prayer/index" options={{ title: 'Prayer Times' }} />
     </Stack>
   );
 }
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
   });
 
   useEffect(() => {
@@ -47,9 +65,19 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <RootLayoutNav />
+              <LanguageProvider>
+                <AppProvider>
+                  <PrayerProvider>
+                    <AudioProvider>
+                      <StatusBar style="light" />
+                      <RootLayoutNav />
+                      <AudioPlayerBar />
+                    </AudioProvider>
+                  </PrayerProvider>
+                </AppProvider>
+              </LanguageProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

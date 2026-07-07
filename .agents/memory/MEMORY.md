@@ -1,0 +1,1 @@
+- [Deen o Dunya app architecture](deen-o-dunya-arch.md) — Islamic planner Expo app: screens, providers, data sources, known caveats

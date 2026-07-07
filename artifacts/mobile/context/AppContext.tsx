@@ -36,7 +36,7 @@ interface AppContextType {
   getTasksForDate: (date: string) => Task[];
 }
 
-const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<AppContextType | null>(null);
 
 const defaultRecord = (date: string): DailyRecord => ({
   date,

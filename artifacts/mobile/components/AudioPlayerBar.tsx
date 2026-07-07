@@ -46,10 +46,13 @@ export default function AudioPlayerBar() {
 
 const styles = StyleSheet.create({
   bar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    // bottom: 84 clears the tab bar (≈64px height + ≈20px safe-area padding)
+    position: 'absolute', bottom: 84, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1,
+    borderTopWidth: 1, borderRadius: 12,
+    marginHorizontal: 8,
+    elevation: 8,
   },
   info: { flex: 1 },
   surahName: { fontSize: 14, fontWeight: '600' as const },

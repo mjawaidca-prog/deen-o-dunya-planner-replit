@@ -70,7 +70,11 @@ function getNextPrayer(times: PrayerTimes): NextPrayer | null {
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false,
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -149,8 +153,11 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const schedulePrayerNotifications = async (times: PrayerTimes) => {
     if (Platform.OS === 'web') return;
     try {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') return;
+      const permResult = await Notifications.getPermissionsAsync();
+      // Use type-safe access compatible with expo-notifications 57.x and 0.32.x
+      const isGranted = (permResult as unknown as { granted?: boolean; status?: string }).granted
+        ?? (permResult as unknown as { status?: string }).status === 'granted';
+      if (!isGranted) return;
       await Notifications.cancelAllScheduledNotificationsAsync();
       const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
       const now = new Date();
