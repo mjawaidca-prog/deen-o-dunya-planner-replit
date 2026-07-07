@@ -17,13 +17,18 @@ export default function Onboarding() {
 
   const handleStart = async () => {
     setLoading(true);
-    // Persist onboarding BEFORE setLanguage — setLanguage may trigger
-    // reloadAppAsync() for RTL switches, which would prevent completeOnboarding
-    // from ever running and leave the user stuck in onboarding.
-    await completeOnboarding();
-    await setLanguage(selected);
-    // If no reload occurred (LTR language), navigate to main app
-    router.replace('/(tabs)');
+    try {
+      // Persist onboarding BEFORE setLanguage — setLanguage may trigger
+      // reloadAppAsync() for RTL switches which would prevent completeOnboarding
+      // from running and leave the user stuck in the onboarding loop.
+      await completeOnboarding();
+      await setLanguage(selected);
+      // Navigate to root; app/index.tsx sees isOnboarded=true and redirects to /(tabs).
+      // This is more reliable than targeting /(tabs) directly from here.
+      router.replace('/');
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (
