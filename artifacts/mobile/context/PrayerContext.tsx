@@ -1,8 +1,29 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+
+// expo-notifications was removed from Expo Go in SDK 53.
+// Use a try-catch require so the module loads fine in Expo Go and in dev builds.
+type NotificationsModule = typeof import('expo-notifications');
+let Notifications: NotificationsModule | null = null;
+try {
+  if (Platform.OS !== 'web') {
+    Notifications = require('expo-notifications') as NotificationsModule;
+    // Register handler immediately after successful load
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+} catch {
+  // Not available in Expo Go SDK 53+ — notifications silently disabled
+}
 
 export interface PrayerTimes {
   Fajr: string; Sunrise: string; Dhuhr: string; Asr: string; Maghrib: string; Isha: string;
@@ -67,16 +88,6 @@ function getNextPrayer(times: PrayerTimes): NextPrayer | null {
     remainingMs: upcoming.date.getTime() - now.getTime(),
   };
 }
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 const PrayerContext = createContext<PrayerContextType | null>(null);
 
@@ -151,10 +162,9 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const schedulePrayerNotifications = async (times: PrayerTimes) => {
-    if (Platform.OS === 'web') return;
+    if (!Notifications) return; // Not available in Expo Go SDK 53+
     try {
       const permResult = await Notifications.getPermissionsAsync();
-      // Use type-safe access compatible with expo-notifications 57.x and 0.32.x
       const isGranted = (permResult as unknown as { granted?: boolean; status?: string }).granted
         ?? (permResult as unknown as { status?: string }).status === 'granted';
       if (!isGranted) return;
@@ -196,7 +206,10 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
       setLocation(locData);
       await AsyncStorage.setItem('prayer_location', JSON.stringify(locData));
       await fetchPrayerTimes(locData.lat, locData.lon, calculationMethod);
-      await Notifications.requestPermissionsAsync();
+      // Request notification permission after location (no-op in Expo Go)
+      if (Notifications) {
+        await Notifications.requestPermissionsAsync();
+      }
     } catch { setError('Could not get location.'); }
     setLoading(false);
   };

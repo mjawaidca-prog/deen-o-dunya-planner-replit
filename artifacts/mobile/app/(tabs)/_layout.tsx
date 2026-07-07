@@ -3,39 +3,13 @@ import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useLanguage } from '@/context/LanguageContext';
 
-function NativeTabLayout() {
-  const { t } = useLanguage();
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'house', selected: 'house.fill' }} />
-        <Label>{t('home')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="quran">
-        <Icon sf={{ default: 'book', selected: 'book.fill' }} />
-        <Label>{t('quran')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="library">
-        <Icon sf={{ default: 'books.vertical', selected: 'books.vertical.fill' }} />
-        <Label>{t('library')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="planner">
-        <Icon sf={{ default: 'calendar', selected: 'calendar' }} />
-        <Label>{t('planner')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="more">
-        <Icon sf={{ default: 'ellipsis', selected: 'ellipsis' }} />
-        <Label>{t('more')}</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
+// NativeTabs (expo-router/unstable-native-tabs) renders screen content in a
+// native host outside the React provider tree, breaking all contexts. Always
+// use ClassicTabLayout (stable expo-router Tabs) which inherits providers correctly.
 
 function ClassicTabLayout() {
   const colors = useColors();
@@ -114,8 +88,5 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
   return <ClassicTabLayout />;
 }

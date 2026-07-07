@@ -2,13 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-
-// Magnetometer only works on native — lazy-require to avoid web crash
-const Magnetometer: typeof import('expo-sensors').Magnetometer | null =
-  Platform.OS !== 'web' ? require('expo-sensors').Magnetometer : null;
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePrayer } from '@/context/PrayerContext';
+
+// Magnetometer is native-only and unavailable in Expo Go — guard with try-catch
+type MagnetometerType = typeof import('expo-sensors').Magnetometer;
+let Magnetometer: MagnetometerType | null = null;
+try {
+  if (Platform.OS !== 'web') {
+    Magnetometer = (require('expo-sensors') as typeof import('expo-sensors')).Magnetometer;
+  }
+} catch {
+  // Not available in this environment
+}
 
 const MECCA_LAT = 21.4225;
 const MECCA_LON = 39.8262;
@@ -42,12 +49,14 @@ export default function QiblaScreen() {
 
   useEffect(() => {
     if (!Magnetometer) return;
-    Magnetometer.setUpdateInterval(100);
-    subRef.current = Magnetometer.addListener(({ x, y }) => {
-      let angle = Math.atan2(y, x) * (180 / Math.PI);
-      if (angle < 0) angle += 360;
-      setHeading(angle);
-    });
+    try {
+      Magnetometer.setUpdateInterval(100);
+      subRef.current = Magnetometer.addListener(({ x, y }) => {
+        let angle = Math.atan2(y, x) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+        setHeading(angle);
+      });
+    } catch {}
     return () => subRef.current?.remove();
   }, []);
 
@@ -63,94 +72,120 @@ export default function QiblaScreen() {
 
   const rotate = rotateVal.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
 
-  if (!location) {
-    return (
-      <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={styles.locEmoji}>📍</Text>
-        <Text style={[styles.locTitle, { color: colors.foreground }]}>Location Required</Text>
-        <Text style={[styles.locSub, { color: colors.mutedForeground }]}>Enable location to find the Qibla direction</Text>
-        <TouchableOpacity style={[styles.locBtn, { backgroundColor: colors.primary }]} onPress={requestLocation}>
-          <Text style={styles.locBtnText}>Enable Location</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Location info */}
-      <View style={styles.infoRow}>
-        <View style={[styles.infoPill, { backgroundColor: colors.card }]}>
-          <Feather name="map-pin" size={14} color={colors.primary} />
-          <Text style={[styles.infoText, { color: colors.foreground }]}>
-            {location.city || `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`}
+      <Text style={[styles.title, { color: colors.foreground }]}>🕌 {t('qibla')}</Text>
+
+      {!location ? (
+        <View style={styles.center}>
+          <Text style={[styles.noLoc, { color: colors.mutedForeground }]}>
+            Location needed to find Qibla direction
           </Text>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={requestLocation}>
+            <Text style={styles.btnText}>Get My Location</Text>
+          </TouchableOpacity>
         </View>
-        <View style={[styles.infoPill, { backgroundColor: colors.card }]}>
-          <Text style={[styles.infoText, { color: colors.gold }]}>{distanceKm.toLocaleString()} km to Mecca</Text>
-        </View>
-      </View>
+      ) : (
+        <View style={styles.center}>
+          {/* Compass Ring */}
+          <View style={[styles.compassRing, { borderColor: colors.primary }]}>
+            {/* Cardinal directions */}
+            {(['N', 'E', 'S', 'W'] as const).map((d, i) => (
+              <View
+                key={d}
+                style={[styles.compassDir, { transform: [{ rotate: `${i * 90}deg` }, { translateY: -80 }] }]}
+              >
+                <Text style={[styles.compassDirText, { color: d === 'N' ? colors.destructive : colors.mutedForeground }]}>{d}</Text>
+              </View>
+            ))}
 
-      {/* Compass */}
-      <View style={styles.compassContainer}>
-        {/* Compass ring */}
-        <View style={[styles.compassRing, { borderColor: colors.border }]}>
-          {['N', 'E', 'S', 'W'].map((d, i) => (
-            <View key={d} style={[styles.compassDir, { transform: [{ rotate: `${i * 90}deg` }, { translateY: -80 }] }]}>
-              <Text style={[styles.compassDirText, { color: d === 'N' ? colors.destructive : colors.mutedForeground }]}>{d}</Text>
-            </View>
-          ))}
+            {/* Qibla needle */}
+            <Animated.View style={[styles.needle, { transform: [{ rotate }] }]}>
+              <View style={[styles.needleTip, { backgroundColor: colors.gold }]} />
+              <View style={[styles.needleBase, { backgroundColor: colors.muted }]} />
+            </Animated.View>
 
-          {/* Qibla needle */}
-          <Animated.View style={[styles.needle, { transform: [{ rotate }] }]}>
-            <View style={styles.needleTop} />
-            <View style={[styles.needleKaaba]}>
+            {/* Center Kaaba icon */}
+            <View style={[styles.centerDot, { backgroundColor: colors.card, borderColor: colors.gold }]}>
               <Text style={styles.kaabaEmoji}>🕋</Text>
             </View>
-          </Animated.View>
+          </View>
 
-          {/* Center dot */}
-          <View style={[styles.centerDot, { backgroundColor: colors.primary }]} />
+          {/* Info cards */}
+          <View style={styles.infoRow}>
+            <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Direction</Text>
+              <Text style={[styles.infoValue, { color: colors.gold }]}>{Math.round(qiblaAngle)}°</Text>
+            </View>
+            <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Distance</Text>
+              <Text style={[styles.infoValue, { color: colors.gold }]}>{distanceKm.toLocaleString()} km</Text>
+            </View>
+          </View>
+
+          <View style={[styles.locCard, { backgroundColor: colors.card }]}>
+            <Feather name="map-pin" size={14} color={colors.primary} />
+            <Text style={[styles.locText, { color: colors.mutedForeground }]}>
+              {location.city}, {location.country}
+            </Text>
+            <TouchableOpacity onPress={requestLocation}>
+              <Text style={[styles.changeText, { color: colors.primary }]}>Change</Text>
+            </TouchableOpacity>
+          </View>
+
+          {!Magnetometer && (
+            <View style={[styles.warningCard, { backgroundColor: colors.card }]}>
+              <Feather name="alert-circle" size={14} color={colors.gold} />
+              <Text style={[styles.warningText, { color: colors.mutedForeground }]}>
+                Compass unavailable in Expo Go. Install a development build for live compass.
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
-
-      {/* Direction info */}
-      <View style={[styles.dirCard, { backgroundColor: colors.card }]}>
-        <Text style={[styles.dirLabel, { color: colors.mutedForeground }]}>Qibla Direction</Text>
-        <Text style={[styles.dirDeg, { color: colors.gold }]}>{Math.round(qiblaAngle)}°</Text>
-        <Text style={[styles.dirSub, { color: colors.mutedForeground }]}>Compass Heading: {Math.round(heading)}°</Text>
-        <Text style={[styles.arabicMecca, { color: colors.foreground }]}>اتجاه القبلة</Text>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  locEmoji: { fontSize: 48, marginBottom: 8 },
-  locTitle: { fontSize: 20, fontWeight: '700' },
-  locSub: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  locBtn: { marginTop: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14 },
-  locBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  infoRow: { flexDirection: 'row', gap: 8, padding: 16, width: '100%' },
-  infoPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  infoText: { fontSize: 13, fontWeight: '500' },
-  compassContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, paddingHorizontal: 24 },
+  title: { fontSize: 22, fontWeight: '700', marginTop: 16, marginBottom: 24, textAlign: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24 },
+  noLoc: { fontSize: 16, textAlign: 'center', marginBottom: 16, lineHeight: 24 },
+  btn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
+  btnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   compassRing: {
-    width: 260, height: 260, borderRadius: 130, borderWidth: 2,
-    alignItems: 'center', justifyContent: 'center', position: 'relative',
+    width: 220, height: 220, borderRadius: 110,
+    borderWidth: 3, alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
   },
-  compassDir: { position: 'absolute', width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  compassDir: {
+    position: 'absolute',
+    width: 24, height: 24, alignItems: 'center', justifyContent: 'center',
+  },
   compassDirText: { fontSize: 14, fontWeight: '700' },
-  needle: { position: 'absolute', alignItems: 'center', width: 4, height: 160 },
-  needleTop: { width: 4, height: 80, backgroundColor: '#2D9B6B', borderRadius: 2 },
-  needleKaaba: { marginTop: -4 },
+  needle: { width: 4, height: 160, alignItems: 'center', position: 'absolute' },
+  needleTip: { flex: 1, width: 4, borderRadius: 2 },
+  needleBase: { flex: 1, width: 4, borderRadius: 2 },
+  centerDot: {
+    width: 48, height: 48, borderRadius: 24,
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+  },
   kaabaEmoji: { fontSize: 24 },
-  centerDot: { width: 16, height: 16, borderRadius: 8, position: 'absolute' },
-  dirCard: { width: '90%', borderRadius: 20, padding: 20, alignItems: 'center', marginBottom: 32, gap: 4 },
-  dirLabel: { fontSize: 13 },
-  dirDeg: { fontSize: 42, fontWeight: '700' },
-  dirSub: { fontSize: 13 },
-  arabicMecca: { fontSize: 18, fontWeight: '600', marginTop: 4 },
+  infoRow: { flexDirection: 'row', gap: 16 },
+  infoCard: { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center' },
+  infoLabel: { fontSize: 12, marginBottom: 4 },
+  infoValue: { fontSize: 22, fontWeight: '700' },
+  locCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+  },
+  locText: { flex: 1, fontSize: 13 },
+  changeText: { fontSize: 13, fontWeight: '600' },
+  warningCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    borderRadius: 10, padding: 12, marginTop: -8,
+  },
+  warningText: { flex: 1, fontSize: 12, lineHeight: 18 },
 });
