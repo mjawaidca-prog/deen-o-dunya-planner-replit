@@ -79,7 +79,7 @@ export default function PosterModal({ visible, item, onClose }: Props) {
       <View style={styles.overlay}>
         <View style={styles.sheet}>
 
-          {/* Sheet header */}
+          {/* Sheet header — always visible */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Share Poster</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -87,94 +87,53 @@ export default function PosterModal({ visible, item, onClose }: Props) {
             </TouchableOpacity>
           </View>
 
-          {/* ── Poster capture area ───────────────────────────── */}
-          <ScrollView
-            style={styles.posterScroll}
-            contentContainerStyle={{ paddingBottom: 4 }}
-            showsVerticalScrollIndicator={false}
-          >
-          <View ref={posterRef} collapsable={false} style={styles.captureWrapper}>
-            <LinearGradient
-              colors={['#FDFAF1', '#F5EDD8', '#F2EAD6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.posterBg}
-            >
-              {/* Outer gold border */}
-              <View style={styles.outerBorder}>
-                {/* Inner gold border */}
-                <View style={styles.innerBorder}>
-
-                  {/* Bismillah top */}
-                  <Text style={styles.bismillah}>﷽</Text>
-
-                  {/* Top ornament */}
-                  <View style={styles.ornamentRow}>
-                    <View style={styles.ornLine} />
-                    <Text style={styles.ornStar}>✦</Text>
-                    <View style={styles.ornLine} />
-                  </View>
-
-                  {/* Eyebrow — surah/hadith reference */}
-                  <View style={styles.eyebrowRow}>
-                    <Text style={styles.eyebrowText}>{item.eyebrow.toUpperCase()}</Text>
-                  </View>
-
-                  {/* Arabic text */}
-                  <Text style={styles.arabicText}>{item.ar}</Text>
-
-                  {/* Divider */}
-                  {(item.en || item.ur) && (
-                    <View style={[styles.ornamentRow, { marginVertical: 10 }]}>
-                      <View style={[styles.ornLine, { opacity: 0.5 }]} />
-                      <Text style={[styles.ornStar, { opacity: 0.6, fontSize: 11 }]}>❧</Text>
-                      <View style={[styles.ornLine, { opacity: 0.5 }]} />
+          {/* Poster — scrollable so it never hides the buttons */}
+          <ScrollView style={styles.posterScroll} contentContainerStyle={{ paddingBottom: 4 }} showsVerticalScrollIndicator={false}>
+            <View ref={posterRef} collapsable={false} style={styles.captureWrapper}>
+              <LinearGradient colors={['#FDFAF1', '#F5EDD8', '#F2EAD6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.posterBg}>
+                <View style={styles.outerBorder}>
+                  <View style={styles.innerBorder}>
+                    <Text style={styles.bismillah}>﷽</Text>
+                    <View style={styles.ornamentRow}>
+                      <View style={styles.ornLine} />
+                      <Text style={styles.ornStar}>✦</Text>
+                      <View style={styles.ornLine} />
                     </View>
-                  )}
-
-                  {/* English translation */}
-                  {item.en ? (
-                    <Text style={styles.englishText}>{item.en}</Text>
-                  ) : null}
-
-                  {/* Urdu translation */}
-                  {item.ur ? (
-                    <>
-                      {item.en ? <View style={{ height: 10 }} /> : null}
-                      <Text style={styles.urduText}>{item.ur}</Text>
-                    </>
-                  ) : null}
-
-                  {/* Footer ornament */}
-                  <View style={[styles.ornamentRow, { marginTop: 18, marginBottom: 10 }]}>
-                    <View style={[styles.ornLine, { backgroundColor: '#BD9A4E66' }]} />
+                    <View style={styles.eyebrowRow}>
+                      <Text style={styles.eyebrowText}>{item.eyebrow.toUpperCase()}</Text>
+                    </View>
+                    <Text style={styles.arabicText}>{item.ar}</Text>
+                    {(item.en || item.ur) && (
+                      <View style={[styles.ornamentRow, { marginVertical: 10 }]}>
+                        <View style={[styles.ornLine, { opacity: 0.5 }]} />
+                        <Text style={[styles.ornStar, { opacity: 0.6, fontSize: 11 }]}>❧</Text>
+                        <View style={[styles.ornLine, { opacity: 0.5 }]} />
+                      </View>
+                    )}
+                    {item.en ? <Text style={styles.englishText}>{item.en}</Text> : null}
+                    {item.ur ? (
+                      <>
+                        {item.en ? <View style={{ height: 10 }} /> : null}
+                        <Text style={styles.urduText}>{item.ur}</Text>
+                      </>
+                    ) : null}
+                    <View style={[styles.ornamentRow, { marginTop: 18, marginBottom: 10 }]}>
+                      <View style={[styles.ornLine, { backgroundColor: '#BD9A4E66' }]} />
+                    </View>
+                    <Text style={styles.footerText}>☾  Deen o Dunya Planner</Text>
                   </View>
-
-                  {/* App name footer */}
-                  <Text style={styles.footerText}>☾  Deen o Dunya Planner</Text>
                 </View>
-              </View>
-            </LinearGradient>
-          </View>
+              </LinearGradient>
+            </View>
           </ScrollView>
 
-          {/* Action buttons */}
+          {/* Action buttons — always visible */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnPrimary]}
-              onPress={handleShareImage}
-              disabled={sharing}
-            >
+            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={handleShareImage} disabled={sharing}>
               <Feather name="image" size={16} color="#fff" />
-              <Text style={styles.actionBtnTextPrimary}>
-                {sharing ? 'Creating…' : 'Share Image'}
-              </Text>
+              <Text style={styles.actionBtnTextPrimary}>{sharing ? 'Creating…' : 'Share Image'}</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnSecondary]}
-              onPress={handleShareText}
-            >
+            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={handleShareText}>
               <Feather name="share-2" size={15} color="#0C5A3B" />
               <Text style={styles.actionBtnTextSecondary}>Share Text</Text>
             </TouchableOpacity>
