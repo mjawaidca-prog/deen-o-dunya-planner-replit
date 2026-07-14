@@ -131,7 +131,6 @@ export default function PosterModal({ visible, item, onClose }: Props) {
           </View>
           {item.en || item.ur ? (
             <View style={styles.langToggleRow}>
-              {" "}
               {(["ar", "en", "ur"] as const)
                 .filter(
                   (id) => id === "ar" || (id === "en" ? item.en : item.ur),
@@ -149,7 +148,6 @@ export default function PosterModal({ visible, item, onClose }: Props) {
                         active && styles.langToggleChipActive,
                       ]}
                     >
-                      {" "}
                       <Text
                         style={[
                           styles.langToggleText,
@@ -157,12 +155,12 @@ export default function PosterModal({ visible, item, onClose }: Props) {
                         ]}
                       >
                         {label}
-                      </Text>{" "}
+                      </Text>
                     </TouchableOpacity>
                   );
-                })}{" "}
+                })}
             </View>
-          ) : null}{" "}
+          ) : null}
           {/* Poster — scrollable so it never hides the buttons */}
           <ScrollView
             style={styles.posterScroll}
