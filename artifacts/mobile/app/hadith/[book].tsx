@@ -157,13 +157,12 @@ export default function HadithBookScreen() {
           </TouchableOpacity>
         )}
       </View>
-      {/* Popular terms — quick multilingual search chips */}{" "}
+      {/* Popular terms — quick multilingual search chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.topicRow}
       >
-        {" "}
         {ISLAMIC_TERMS.map((term) => {
           const active = activeTerm?.id === term.id;
           return (
@@ -175,20 +174,18 @@ export default function HadithBookScreen() {
               ]}
               onPress={() => setActiveTerm(active ? null : term)}
             >
-              {" "}
               <Text
                 style={[
                   styles.topicText,
                   { color: active ? "#fff" : colors.mutedForeground },
                 ]}
               >
-                {" "}
-                {term.en} · {term.transliteration ?? term.ur}{" "}
-              </Text>{" "}
+                {term.en} · {term.transliteration ?? term.ur}
+              </Text>
             </TouchableOpacity>
           );
-        })}{" "}
-      </ScrollView>{" "}
+        })}
+      </ScrollView>
       {/* Topic chips — horizontal scroll */}
       <ScrollView
         horizontal
