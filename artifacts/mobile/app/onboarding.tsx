@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useLanguage } from '@/context/LanguageContext';
 import { Language } from '@/constants/translations';
@@ -32,59 +33,66 @@ export default function Onboarding() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.logoRing}>
-          <Text style={styles.logoEmoji}>☪️</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.hero}>
+          <View style={styles.logoRing}>
+            <Text style={styles.logoEmoji}>☪️</Text>
+          </View>
+          <Text style={styles.appName}>Deen o Dunya</Text>
+          <Text style={styles.subtitle}>Your Complete Islamic Companion</Text>
+          <Text style={styles.arabicSub}>رفيقك الإسلامي الشامل</Text>
         </View>
-        <Text style={styles.appName}>Deen o Dunya</Text>
-        <Text style={styles.subtitle}>Your Complete Islamic Companion</Text>
-        <Text style={styles.arabicSub}>رفيقك الإسلامي الشامل</Text>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Select Your Language / اپنی زبان منتخب کریں / اختر لغتك</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Select Your Language / اپنی زبان منتخب کریں / اختر لغتك</Text>
 
-        {LANGUAGES.map(lang => (
-          <TouchableOpacity
-            key={lang.code}
-            style={[styles.langCard, selected === lang.code && styles.langCardActive]}
-            onPress={() => setSelected(lang.code)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.flag}>{lang.flag}</Text>
-            <View style={styles.langInfo}>
-              <Text style={[styles.langLabel, selected === lang.code && styles.langLabelActive]}>
-                {lang.nativeLabel}
-              </Text>
-              <Text style={styles.langSub}>{lang.label}</Text>
-            </View>
-            {selected === lang.code && (
-              <View style={styles.checkCircle}>
-                <Text style={styles.checkMark}>✓</Text>
+          {LANGUAGES.map(lang => (
+            <TouchableOpacity
+              key={lang.code}
+              style={[styles.langCard, selected === lang.code && styles.langCardActive]}
+              onPress={() => setSelected(lang.code)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.flag}>{lang.flag}</Text>
+              <View style={styles.langInfo}>
+                <Text style={[styles.langLabel, selected === lang.code && styles.langLabelActive]}>
+                  {lang.nativeLabel}
+                </Text>
+                <Text style={styles.langSub}>{lang.label}</Text>
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </View>
+              {selected === lang.code && (
+                <View style={styles.checkCircle}>
+                  <Text style={styles.checkMark}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <TouchableOpacity style={styles.startBtn} onPress={handleStart} activeOpacity={0.85} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.startBtnText}>
-            {selected === 'ar' ? 'ابدأ الآن' : selected === 'ur' ? 'شروع کریں' : 'Get Started'}
-          </Text>
-        )}
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.startBtn} onPress={handleStart} activeOpacity={0.85} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.startBtnText}>
+              {selected === 'ar' ? 'ابدأ الآن' : selected === 'ur' ? 'شروع کریں' : 'Get Started'}
+            </Text>
+          )}
+        </TouchableOpacity>
 
-      <Text style={styles.footer}>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</Text>
+        <Text style={styles.footer}>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A1628', paddingHorizontal: 24 },
+  container: { flex: 1, backgroundColor: '#0A1628' },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 36, flexGrow: 1 },
   hero: { alignItems: 'center', paddingTop: 48, paddingBottom: 32 },
   logoRing: {
     width: 100, height: 100, borderRadius: 50,
