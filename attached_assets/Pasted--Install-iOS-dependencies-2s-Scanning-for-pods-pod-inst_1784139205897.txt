@@ -1,0 +1,128 @@
+📦 Install iOS dependencies
+
+2s
+
+
+🔍️ Scanning for pods...
+> pod install
+Using Expo modules
+[Expo] Enabling modular headers for pod ExpoModulesCore
+[Expo] Enabling modular headers for pod React-RCTAppDelegate
+[Expo] Enabling modular headers for pod React-RCTFabric
+[Expo] Enabling modular headers for pod ReactAppDependencyProvider
+[Expo] Enabling modular headers for pod React-Core
+[Expo] Enabling modular headers for pod ReactCodegen
+[Expo] Enabling modular headers for pod RCTRequired
+[Expo] Enabling modular headers for pod RCTTypeSafety
+[Expo] Enabling modular headers for pod ReactCommon
+[Expo] Enabling modular headers for pod React-NativeModulesApple
+[Expo] Enabling modular headers for pod Yoga
+[Expo] Enabling modular headers for pod React-Fabric
+[Expo] Enabling modular headers for pod React-graphics
+[Expo] Enabling modular headers for pod React-utils
+[Expo] Enabling modular headers for pod React-featureflags
+[Expo] Enabling modular headers for pod React-debug
+[Expo] Enabling modular headers for pod React-ImageManager
+[Expo] Enabling modular headers for pod React-rendererdebug
+[Expo] Enabling modular headers for pod React-jsi
+[Expo] Enabling modular headers for pod React-renderercss
+[Expo] Enabling modular headers for pod hermes-engine
+[Expo] Enabling modular headers for pod glog
+[Expo] Enabling modular headers for pod boost
+[Expo] Enabling modular headers for pod DoubleConversion
+[Expo] Enabling modular headers for pod fast_float
+[Expo] Enabling modular headers for pod fmt
+[Expo] Enabling modular headers for pod RCT-Folly
+[Expo] Enabling modular headers for pod SocketRocket
+[Expo] Enabling modular headers for pod SDWebImage
+[Expo] Enabling modular headers for pod SDWebImageAVIFCoder
+[Expo] Enabling modular headers for pod SDWebImageSVGCoder
+[Expo] Enabling modular headers for pod SDWebImageWebPCoder
+[Expo] Enabling modular headers for pod libavif
+[Expo] Enabling modular headers for pod RNScreens
+[!] Invalid `Podfile` file: 
+[!] Invalid `RNReanimated.podspec` file: [Reanimated] Reanimated requires the New Architecture to be enabled. If you have `RCT_NEW_ARCH_ENABLED=0` set in your environment you should remove it..
+ #  from /Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_a25ca2be2a5db57062540af0e600a676/node_modules/react-native-reanimated/RNReanimated.podspec:9
+ #  -------------------------------------------
+ #  $new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] != '0'
+ >  assert_new_architecture_enabled($new_arch_enabled)
+ #  
+ #  -------------------------------------------
+.
+ #  from /Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:42
+ #  -------------------------------------------
+ #  
+ >    config = use_native_modules!(config_command)
+ #  
+ #  -------------------------------------------
+Couldn't install Pods. Updating the Pods project and trying again...
+> pod install --repo-update
+Using Expo modules
+[Expo] Enabling modular headers for pod ExpoModulesCore
+[Expo] Enabling modular headers for pod React-RCTAppDelegate
+[Expo] Enabling modular headers for pod React-RCTFabric
+[Expo] Enabling modular headers for pod ReactAppDependencyProvider
+[Expo] Enabling modular headers for pod React-Core
+[Expo] Enabling modular headers for pod ReactCodegen
+[Expo] Enabling modular headers for pod RCTRequired
+[Expo] Enabling modular headers for pod RCTTypeSafety
+[Expo] Enabling modular headers for pod ReactCommon
+[Expo] Enabling modular headers for pod React-NativeModulesApple
+[Expo] Enabling modular headers for pod Yoga
+[Expo] Enabling modular headers for pod React-Fabric
+[Expo] Enabling modular headers for pod React-graphics
+[Expo] Enabling modular headers for pod React-utils
+[Expo] Enabling modular headers for pod React-featureflags
+[Expo] Enabling modular headers for pod React-debug
+[Expo] Enabling modular headers for pod React-ImageManager
+[Expo] Enabling modular headers for pod React-rendererdebug
+[Expo] Enabling modular headers for pod React-jsi
+[Expo] Enabling modular headers for pod React-renderercss
+[Expo] Enabling modular headers for pod hermes-engine
+[Expo] Enabling modular headers for pod glog
+[Expo] Enabling modular headers for pod boost
+[Expo] Enabling modular headers for pod DoubleConversion
+[Expo] Enabling modular headers for pod fast_float
+[Expo] Enabling modular headers for pod fmt
+[Expo] Enabling modular headers for pod RCT-Folly
+[Expo] Enabling modular headers for pod SocketRocket
+[Expo] Enabling modular headers for pod SDWebImage
+[Expo] Enabling modular headers for pod SDWebImageAVIFCoder
+[Expo] Enabling modular headers for pod SDWebImageSVGCoder
+[Expo] Enabling modular headers for pod SDWebImageWebPCoder
+[Expo] Enabling modular headers for pod libavif
+[Expo] Enabling modular headers for pod RNScreens
+[!] Invalid `Podfile` file: 
+[!] Invalid `RNReanimated.podspec` file: [Reanimated] Reanimated requires the New Architecture to be enabled. If you have `RCT_NEW_ARCH_ENABLED=0` set in your environment you should remove it..
+ #  from /Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_a25ca2be2a5db57062540af0e600a676/node_modules/react-native-reanimated/RNReanimated.podspec:9
+ #  -------------------------------------------
+ #  $new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] != '0'
+ >  assert_new_architecture_enabled($new_arch_enabled)
+ #  
+ #  -------------------------------------------
+.
+ #  from /Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:42
+ #  -------------------------------------------
+ #  
+ >    config = use_native_modules!(config_command)
+ #  
+ #  -------------------------------------------
+Couldn't install Pods. Updating the Pods project and trying again...
+Command `pod install` failed.
+└─ Cause: Invalid `Podfile` file: 
+[!] Invalid `RNReanimated.podspec` file: [Reanimated] Reanimated requires the New Architecture to be enabled. If you have `RCT_NEW_ARCH_ENABLED=0` set in your environment you should remove it..
+ #  from /Users/expo/workingdir/build/node_modules/.pnpm/react-native-reanimated@4.1.7_react-native-worklets@0.5.1_@babel+core@7.29.7_react-nati_a25ca2be2a5db57062540af0e600a676/node_modules/react-native-reanimated/RNReanimated.podspec:9
+ #  -------------------------------------------
+ #  $new_arch_enabled = ENV['RCT_NEW_ARCH_ENABLED'] != '0'
+ >  assert_new_architecture_enabled($new_arch_enabled)
+ #  
+ #  -------------------------------------------
+.
+ #  from /Users/expo/workingdir/build/artifacts/mobile/ios/Podfile:42
+ #  -------------------------------------------
+ #  
+ >    config = use_native_modules!(config_command)
+ #  
+ #  -------------------------------------------
+pod install --repo-update --ansi exited with non-zero code: 1
+/bin/bash -eo pipefail /var/folders/5_/4knlryn57n39p2c_jw8567z00000gn/T/eas-build/e7c2423c-7097-457e-9bca-ad213abc131a/steps/step-014/scripts/98c66874-872f-401b-a36a-cd154f72a18e.sh exited with non-zero code: 1

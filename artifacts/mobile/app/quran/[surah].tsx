@@ -1,12 +1,8 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Modal, Platform, ScrollView,
+  ActivityIndicator, Alert, Animated, FlatList, Modal, Platform, ScrollView,
   Share, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
-import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withRepeat, withSequence, withTiming, interpolateColor,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -71,40 +67,44 @@ const AyahCard = memo(function AyahCard({
   colors, surahNum, totalAyahs, onBookmark, onShare, onPoster, onPlay, onStop,
 }: AyahCardProps) {
   // Animated glow — pulses when this ayah is the active one
-  const glow = useSharedValue(0);
+  const glow = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (isActive) {
-      glow.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 650 }),
-          withTiming(0.25, { duration: 650 }),
-        ),
-        -1,
-        true,
+      loopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glow, { toValue: 1, duration: 650, useNativeDriver: true }),
+          Animated.timing(glow, { toValue: 0.25, duration: 650, useNativeDriver: true }),
+        ]),
       );
+      loopRef.current.start();
     } else {
-      glow.value = withTiming(0, { duration: 300 });
+      loopRef.current?.stop();
+      Animated.timing(glow, { toValue: 0, duration: 300, useNativeDriver: true }).start();
     }
+    return () => {
+      loopRef.current?.stop();
+    };
   }, [isActive]);
 
-  const animStyle = useAnimatedStyle(() => {
-    const borderColor = interpolateColor(
-      glow.value,
-      [0, 1],
-      ['transparent', colors.primary],
-    );
-    return {
-      borderColor,
-      borderWidth: 1.5,
-      backgroundColor: isActive
-        ? colors.primary + '18'
-        : colors.card,
-    };
-  });
+  const cardStyle = {
+    backgroundColor: isActive ? colors.primary + '18' : colors.card,
+  };
 
   return (
-    <Animated.View style={[styles.ayahCard, animStyle]}>
+    <View style={[styles.ayahCard, cardStyle]}>
+      <Animated.View
+        style={[
+          styles.glowBorder,
+          {
+            borderColor: colors.primary,
+            opacity: glow,
+            borderRadius: styles.ayahCard.borderRadius,
+          },
+        ]}
+        pointerEvents="none"
+      />
       {/* Header row */}
       <View style={styles.ayahHeader}>
         <View style={[styles.ayahNum, { backgroundColor: isActive ? colors.primary : colors.surfaceAlt }]}>
@@ -148,7 +148,7 @@ const AyahCard = memo(function AyahCard({
           <Text style={[styles.tafsirText, { color: colors.foreground }]}>{tafsirText}</Text>
         </View>
       ) : null}
-    </Animated.View>
+    </View>
   );
 });
 
@@ -689,6 +689,7 @@ const styles = StyleSheet.create({
 
   // AyahCard styles
   ayahCard: { borderRadius: 14, padding: 16, marginBottom: 10 },
+  glowBorder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1.5 },
   ayahHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   ayahNum: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   ayahNumText: { fontSize: 13, fontWeight: '700' },
