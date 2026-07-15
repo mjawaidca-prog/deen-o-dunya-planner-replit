@@ -46,10 +46,12 @@ interface PrayerContextType {
   nextPrayer: NextPrayer | null;
   location: LocationData | null;
   calculationMethod: number;
+  adhanEnabled: boolean;
   loading: boolean;
   error: string | null;
   requestLocation: () => Promise<void>;
   setCalculationMethod: (method: number) => void;
+  setAdhanEnabled: (enabled: boolean) => Promise<void>;
   refreshPrayerTimes: () => Promise<void>;
 }
 
@@ -63,6 +65,7 @@ export const CALC_METHODS = [
 ];
 
 const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+const ADHAN_CHANNEL_ID = 'adhan-channel';
 
 function parseTime(timeStr: string, baseDate: Date): Date {
   const [time, period] = timeStr.split(' ');
@@ -97,18 +100,21 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [calculationMethod, setCalcMethod] = useState(5);
+  const [adhanEnabled, setAdhanEnabledState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [savedLoc, savedMethod] = await Promise.all([
+        const [savedLoc, savedMethod, savedAdhan] = await Promise.all([
           AsyncStorage.getItem('prayer_location'),
           AsyncStorage.getItem('calc_method'),
+          AsyncStorage.getItem('adhan_enabled'),
         ]);
         if (savedLoc) setLocation(JSON.parse(savedLoc));
         if (savedMethod) setCalcMethod(Number(savedMethod));
+        if (savedAdhan) setAdhanEnabledState(savedAdhan === 'true');
       } catch {}
     })();
   }, []);
@@ -143,7 +149,6 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         const times: PrayerTimes = { Fajr: t.Fajr, Sunrise: t.Sunrise, Dhuhr: t.Dhuhr, Asr: t.Asr, Maghrib: t.Maghrib, Isha: t.Isha };
         setPrayerTimes(times);
         await AsyncStorage.setItem('cached_prayer_times', JSON.stringify({ times, date: dateStr, lat, lon, method }));
-        schedulePrayerNotifications(times);
       }
       if (hijriData.code === 200) {
         const h = hijriData.data.hijri;
@@ -152,6 +157,8 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
           monthNameAr: h.month.ar, monthNameEn: h.month.en, weekdayEn: h.weekday.en,
         });
       }
+      // Fetch monthly calendar for accurate Adhan scheduling across days
+      await fetchMonthlyCalendar(lat, lon, method, adhanEnabled);
     } catch {
       try {
         const cached = await AsyncStorage.getItem('cached_prayer_times');
@@ -161,26 +168,104 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
     } finally { setLoading(false); }
   };
 
-  const schedulePrayerNotifications = async (times: PrayerTimes) => {
-    if (!Notifications) return; // Not available in Expo Go SDK 53+
+  const fetchMonthlyCalendar = async (lat: number, lon: number, method: number, enabled: boolean) => {
+    if (!Notifications) return;
+    try {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      const res = await fetch(
+        `https://api.aladhan.com/v1/calendar?latitude=${lat}&longitude=${lon}&method=${method}&month=${month}&year=${year}`
+      );
+      const data = await res.json();
+      if (data.code === 200 && Array.isArray(data.data)) {
+        const calendar = data.data.map((day: any) => ({
+          date: day.date.gregorian.date,
+          timings: day.timings as PrayerTimes,
+        }));
+        await AsyncStorage.setItem('cached_prayer_calendar', JSON.stringify({ calendar, month, year, method, lat, lon }));
+        await scheduleAdhanNotifications(calendar, enabled);
+      }
+    } catch {
+      // Fallback to today's cached times if calendar fails
+      try {
+        const cached = await AsyncStorage.getItem('cached_prayer_times');
+        if (cached) {
+          const { times } = JSON.parse(cached);
+          await scheduleAdhanNotifications([{ date: formatDateKey(new Date()), timings: times }], enabled);
+        }
+      } catch {}
+    }
+  };
+
+  const scheduleAdhanNotifications = async (calendar: { date: string; timings: PrayerTimes }[], enabled: boolean) => {
+    if (!Notifications) return;
     try {
       const permResult = await Notifications.getPermissionsAsync();
       const isGranted = (permResult as unknown as { granted?: boolean; status?: string }).granted
         ?? (permResult as unknown as { status?: string }).status === 'granted';
       if (!isGranted) return;
+
       await Notifications.cancelAllScheduledNotificationsAsync();
-      const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
+      if (!enabled) return;
+
+      // Android: create a high-priority channel that plays the bundled Adhan sound.
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync(ADHAN_CHANNEL_ID, {
+          name: 'Adhan Prayer Alerts',
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'adhan.mp3',
+          vibrationPattern: [0, 250, 250, 250],
+          enableVibrate: true,
+          enableLights: true,
+          bypassDnd: true,
+        });
+      }
+
       const now = new Date();
-      for (const prayer of prayers) {
-        const prayerDate = parseTime(times[prayer], now);
-        if (prayerDate > now) {
-          await Notifications.scheduleNotificationAsync({
-            content: { title: `${prayer} Time`, body: `It is time for ${prayer} prayer. Allahu Akbar!`, sound: true },
-            trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: prayerDate },
-          });
+      let scheduled = 0;
+      for (const day of calendar) {
+        const [dayNum, monthNum, yearNum] = day.date.split('-').map(Number);
+        const baseDate = new Date(yearNum, monthNum - 1, dayNum);
+        for (const prayer of PRAYER_NAMES) {
+          const prayerDate = parseTime(day.timings[prayer as keyof PrayerTimes], baseDate);
+          if (prayerDate > now && scheduled < 100) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: `${prayer} — Adhan`,
+                body: `It is time for ${prayer} prayer`,
+                sound: 'adhan.mp3',
+                ...(Platform.OS === 'android' && { channelId: ADHAN_CHANNEL_ID }),
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+              },
+              trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: prayerDate },
+            });
+            scheduled++;
+          }
         }
       }
     } catch {}
+  };
+
+  const formatDateKey = (date: Date) => {
+    return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+  };
+
+  const setAdhanEnabled = async (enabled: boolean) => {
+    setAdhanEnabledState(enabled);
+    await AsyncStorage.setItem('adhan_enabled', String(enabled));
+    if (location) {
+      // Reschedule with current calendar or cached times
+      try {
+        const cachedCalendar = await AsyncStorage.getItem('cached_prayer_calendar');
+        if (cachedCalendar) {
+          const { calendar } = JSON.parse(cachedCalendar);
+          await scheduleAdhanNotifications(calendar, enabled);
+        } else if (prayerTimes) {
+          await scheduleAdhanNotifications([{ date: formatDateKey(new Date()), timings: prayerTimes }], enabled);
+        }
+      } catch {}
+    }
   };
 
   const requestLocation = async () => {
@@ -225,8 +310,8 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PrayerContext.Provider value={{
-      prayerTimes, hijriDate, nextPrayer, location, calculationMethod,
-      loading, error, requestLocation, setCalculationMethod, refreshPrayerTimes,
+      prayerTimes, hijriDate, nextPrayer, location, calculationMethod, adhanEnabled,
+      loading, error, requestLocation, setCalculationMethod, setAdhanEnabled, refreshPrayerTimes,
     }}>
       {children}
     </PrayerContext.Provider>

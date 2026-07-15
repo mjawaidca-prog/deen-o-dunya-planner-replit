@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useApp();
-  const { calculationMethod, setCalculationMethod } = usePrayer();
+  const { calculationMethod, setCalculationMethod, adhanEnabled, setAdhanEnabled } = usePrayer();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -86,6 +86,24 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        {/* Adhan Notifications */}
+        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{t('notifications').toUpperCase()}</Text>
+        <View style={[styles.group, { backgroundColor: colors.card }]}>
+          <View style={styles.row}>
+            <Text style={styles.bellEmoji}>🔔</Text>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>{t('enableNotifications')}</Text>
+              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Play Adhan at prayer time, even when the app is closed</Text>
+            </View>
+            <Switch
+              value={adhanEnabled}
+              onValueChange={setAdhanEnabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+        </View>
+
         {/* About */}
         <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>ABOUT</Text>
         <View style={[styles.group, { backgroundColor: colors.card }]}>
@@ -112,6 +130,7 @@ const styles = StyleSheet.create({
   rowWrap: { paddingVertical: 12 },
   langFlag: { fontSize: 22 },
   themeEmoji: { fontSize: 20 },
+  bellEmoji: { fontSize: 20 },
   rowInfo: { flex: 1 },
   rowLabel: { fontSize: 15 },
   rowSub: { fontSize: 12, marginTop: 1 },

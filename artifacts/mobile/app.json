@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.deenodunya.planner",
       "buildNumber": "2",
       "infoPlist": {
-        "UIBackgroundModes": ["audio", "fetch"],
+        "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
         "NSLocationWhenInUseUsageDescription": "Your location is used to calculate accurate prayer times and find nearby mosques.",
         "NSLocationAlwaysUsageDescription": "Your location is used to calculate accurate prayer times.",
         "NSMicrophoneUsageDescription": "Microphone access is not used by this app."
@@ -30,7 +30,16 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0A1628"
       },
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "VIBRATE"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -47,7 +56,7 @@
       [
         "expo-notifications",
         {
-          "sounds": []
+          "sounds": ["./assets/sounds/adhan.mp3"]
         }
       ],
       [
