@@ -33,6 +33,13 @@ minimumReleaseAgeExclude:
   # this setting guards against does not apply to our own packages.
   - '@replit/*'
   - stripe-replit-sync
+  # Expo SDK 54 packages required for iOS App Store build compatibility.
+  # These are published by Expo (trusted org) and are needed immediately for the
+  # production build; remove once they are older than the minimumReleaseAge window.
+  - expo-notifications
+  - expo-sensors
+  - expo-sharing
+  - react-native-view-shot
 
 packages:
   - artifacts/*

@@ -67,10 +67,10 @@
   },
   "dependencies": {
     "expo-av": "^16.0.8",
-    "expo-notifications": "^57.0.3",
-    "expo-sensors": "^57.0.1",
-    "expo-sharing": "^57.0.2",
+    "expo-notifications": "~0.32.17",
+    "expo-sensors": "~15.0.8",
+    "expo-sharing": "~14.0.8",
     "react-native-maps": "1.18.0",
-    "react-native-view-shot": "^5.1.1"
+    "react-native-view-shot": "4.0.3"
   }
 }
