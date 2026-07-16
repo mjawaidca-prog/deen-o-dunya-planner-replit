@@ -178,6 +178,7 @@ export default function QuranSurahScreen() {
   const [showSettings,           setShowSettings]           = useState(false);
   const [showQariPicker,         setShowQariPicker]         = useState(false);
   const [showTranslationPicker,  setShowTranslationPicker]  = useState(false);
+  const [showTafsirPicker,       setShowTafsirPicker]       = useState(false);
 
   // Tafsir
   const [tafsirEnabled,  setTafsirEnabled]  = useState(false);
@@ -315,6 +316,8 @@ export default function QuranSurahScreen() {
   const handleTafsirEditionSelect = (edition: typeof TAFSEER_EDITIONS[0]) => {
     setSelectedTafsir(edition);
     setTafsirData({});
+    setTafsirEnabled(true);
+    setShowTafsirPicker(false);
   };
 
   const toggleBookmark = useCallback(async (item: Ayah) => {
@@ -483,35 +486,40 @@ export default function QuranSurahScreen() {
             <Text style={[styles.settingLabel, { color: colors.foreground }]}>
               Tafsir {tafsirLoading ? '(loading…)' : ''}
             </Text>
-            <View style={styles.tafsirRow}>
-              {TAFSEER_EDITIONS.map(ed => (
-                <TouchableOpacity
-                  key={ed.id}
-                  style={[
-                    styles.tafsirEdBtn, { backgroundColor: colors.surfaceAlt },
-                    selectedTafsir.id === ed.id && tafsirEnabled && { backgroundColor: colors.primary + '33', borderColor: colors.primary },
-                  ]}
-                  onPress={() => {
-                    if (tafsirEnabled && selectedTafsir.id === ed.id) {
-                      setTafsirEnabled(false);
-                    } else {
-                      handleTafsirEditionSelect(ed);
-                      setTafsirEnabled(true);
-                    }
-                  }}
-                >
-                  <Text style={[styles.tafsirEdText, { color: selectedTafsir.id === ed.id && tafsirEnabled ? colors.primary : colors.mutedForeground }]}>
-                    {ed.name.split(' ')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.tafsirControl}>
+              <TouchableOpacity
+                onPress={() => setShowTafsirPicker(v => !v)}
+                style={[styles.pickerBtn, { backgroundColor: colors.surfaceAlt, maxWidth: 220 }]}
+              >
+                <Text style={[styles.pickerBtnText, { color: tafsirEnabled ? colors.primary : colors.mutedForeground }]} numberOfLines={1}>
+                  {tafsirEnabled ? selectedTafsir.name : 'Select tafsir…'}
+                </Text>
+                <Feather name="chevron-down" size={14} color={tafsirEnabled ? colors.primary : colors.mutedForeground} />
+              </TouchableOpacity>
               {tafsirEnabled && (
-                <TouchableOpacity onPress={() => setTafsirEnabled(false)} style={[styles.tafsirEdBtn, { backgroundColor: colors.destructive + '22' }]}>
-                  <Text style={{ color: colors.destructive, fontSize: 11 }}>Off</Text>
+                <TouchableOpacity onPress={() => setTafsirEnabled(false)} style={[styles.tafsirOffBtn, { backgroundColor: colors.destructive + '22' }]}>
+                  <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: '600' }}>Off</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
+          {showTafsirPicker && (
+            <View style={[styles.dropdownList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {TAFSEER_EDITIONS.map(ed => (
+                <TouchableOpacity
+                  key={ed.id}
+                  style={[styles.dropdownItem, ed.id === selectedTafsir.id && tafsirEnabled && { backgroundColor: colors.primary + '22' }]}
+                  onPress={() => handleTafsirEditionSelect(ed)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.dropdownText, { color: ed.id === selectedTafsir.id && tafsirEnabled ? colors.primary : colors.foreground }]}>{ed.name}</Text>
+                    <Text style={[styles.dropdownSub, { color: colors.mutedForeground }]}>{ed.lang === 'ar' ? 'Arabic' : 'English'} tafsir</Text>
+                  </View>
+                  {ed.id === selectedTafsir.id && tafsirEnabled && <Feather name="check" size={14} color={colors.primary} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* Reciter */}
           <View style={styles.settingRow}>
@@ -680,6 +688,8 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: 13, fontWeight: '500' },
   dropdownSub: { fontSize: 11, marginTop: 2 },
   tafsirRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  tafsirControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tafsirOffBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   tafsirEdBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: 'transparent' },
   tafsirEdText: { fontSize: 11, fontWeight: '600' },
 

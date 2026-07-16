@@ -68,8 +68,12 @@ const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const ADHAN_CHANNEL_ID = 'adhan-channel';
 
 function parseTime(timeStr: string, baseDate: Date): Date {
-  const [time, period] = timeStr.split(' ');
-  let [hours, minutes] = time.split(':').map(Number);
+  // AlAdhan API returns 24-hour format (e.g. "04:30"), but the previous
+  // code assumed 12-hour with AM/PM. Handle both safely.
+  const trimmed = timeStr.trim();
+  const period = trimmed.match(/\s*(AM|PM)$/i)?.[1]?.toUpperCase();
+  const timePart = period ? trimmed.replace(/\s*(AM|PM)$/i, '').trim() : trimmed;
+  let [hours, minutes] = timePart.split(':').map(Number);
   if (period === 'PM' && hours !== 12) hours += 12;
   if (period === 'AM' && hours === 12) hours = 0;
   const d = new Date(baseDate);
@@ -254,8 +258,17 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const setAdhanEnabled = async (enabled: boolean) => {
     setAdhanEnabledState(enabled);
     await AsyncStorage.setItem('adhan_enabled', String(enabled));
+    if (!Notifications) return;
+    if (enabled) {
+      const perm = await Notifications.requestPermissionsAsync();
+      const granted = perm.granted || (perm as any).status === 'granted';
+      if (!granted) {
+        setAdhanEnabledState(false);
+        await AsyncStorage.setItem('adhan_enabled', 'false');
+        return;
+      }
+    }
     if (location) {
-      // Reschedule with current calendar or cached times
       try {
         const cachedCalendar = await AsyncStorage.getItem('cached_prayer_calendar');
         if (cachedCalendar) {
@@ -264,7 +277,9 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         } else if (prayerTimes) {
           await scheduleAdhanNotifications([{ date: formatDateKey(new Date()), timings: prayerTimes }], enabled);
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[Adhan] scheduling failed', err);
+      }
     }
   };
 

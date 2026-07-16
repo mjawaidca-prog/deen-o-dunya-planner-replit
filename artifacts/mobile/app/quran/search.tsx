@@ -4,6 +4,7 @@ import {
   Alert,
   FlatList,
   Keyboard,
+  Modal,
   Share,
   ScrollView,
   StyleSheet,
@@ -119,6 +120,7 @@ export default function QuranSearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set());
   const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
+  const [showKeywordsModal, setShowKeywordsModal] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -203,6 +205,19 @@ export default function QuranSearchScreen() {
     setLang(newLang);
     // Re-search if already searched
     if (searched && query.trim()) doSearch(query, newLang);
+  };
+
+  const getTermLabel = (term: IslamicTerm) => {
+    if (lang.id === "ar") return term.ar;
+    if (lang.id === "ur") return term.ur || term.en;
+    return term.en;
+  };
+
+  const selectKeyword = (term: IslamicTerm) => {
+    const label = getTermLabel(term);
+    setQuery(label);
+    setShowKeywordsModal(false);
+    setTimeout(() => doSearch(label, lang), 50);
   };
 
   // ── Bookmark ────────────────────────────────────────────────────────────────
@@ -561,48 +576,47 @@ export default function QuranSearchScreen() {
         )}
       </View>
 
-      {/* ── Language + Search button row ── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.termsRow}
-      >
-        {ISLAMIC_TERMS.map((term) => {
-          const label =
-            lang.id === "ar"
-              ? term.ar
-              : lang.id === "ur"
-                ? term.ur || term.en
-                : term.en;
-          const active = query.trim().toLowerCase() === label.toLowerCase();
-          return (
-            <TouchableOpacity
-              key={term.id}
-              style={[
-                styles.termChip,
-                {
-                  backgroundColor: colors.surfaceAlt,
-                  borderColor: colors.border,
-                },
-                active && { backgroundColor: colors.primary },
-              ]}
-              onPress={() => {
-                setQuery(label);
-                setTimeout(() => doSearch(label, lang), 50);
-              }}
-            >
-              <Text
+      {/* ── Quick keyword chips + browse all ── */}
+      <View style={styles.keywordsSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.termsRow}
+        >
+          {ISLAMIC_TERMS.slice(0, 8).map((term) => {
+            const label = getTermLabel(term);
+            const active = query.trim().toLowerCase() === label.toLowerCase();
+            return (
+              <TouchableOpacity
+                key={term.id}
                 style={[
-                  styles.termChipText,
-                  { color: active ? "#fff" : colors.mutedForeground },
+                  styles.termChip,
+                  {
+                    backgroundColor: active ? colors.primary : colors.surfaceAlt,
+                    borderColor: active ? colors.primary : colors.border,
+                  },
                 ]}
+                onPress={() => selectKeyword(term)}
               >
-                {label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+                <Text
+                  style={[
+                    styles.termChipText,
+                    { color: active ? "#fff" : colors.mutedForeground },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity
+            style={[styles.browseAllChip, { backgroundColor: colors.primary + "18", borderColor: colors.primary }]}
+            onPress={() => setShowKeywordsModal(true)}
+          >
+            <Text style={[styles.browseAllText, { color: colors.primary }]}>Browse all →</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
       <View style={styles.controlRow}>
         <View
           style={[styles.langPills, { backgroundColor: colors.surfaceAlt }]}
@@ -666,6 +680,93 @@ export default function QuranSearchScreen() {
         onClose={() => setPosterItem(null)}
       />
 
+      {/* ── Keywords browser modal ── */}
+      <Modal
+        visible={showKeywordsModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowKeywordsModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: "#00000088" }]}>
+          <View style={[styles.keywordsModal, { backgroundColor: colors.background }]}>
+            <View style={styles.keywordsModalHeader}>
+              <Text style={[styles.keywordsModalTitle, { color: colors.foreground }]}>
+                Quran Keywords
+              </Text>
+              <TouchableOpacity onPress={() => setShowKeywordsModal(false)} style={styles.closeBtn}>
+                <Feather name="x" size={22} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.keywordsModalSub, { color: colors.mutedForeground }]}>
+              Tap a word to see every ayah that mentions it
+            </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.keywordsModalContent}
+            >
+              {["worship", "concept", "prophet", "place", "angel"].map((category) => {
+                const categoryTerms = ISLAMIC_TERMS.filter((t) => t.category === category);
+                if (categoryTerms.length === 0) return null;
+                const categoryLabels: Record<string, string> = {
+                  worship: "Worship",
+                  concept: "Concepts",
+                  prophet: "Prophets",
+                  place: "Places",
+                  angel: "Angels",
+                };
+                return (
+                  <View key={category} style={styles.categorySection}>
+                    <Text style={[styles.categoryTitle, { color: colors.gold }]}>
+                      {categoryLabels[category]}
+                    </Text>
+                    <View style={styles.categoryGrid}>
+                      {categoryTerms.map((term) => {
+                        const label = getTermLabel(term);
+                        const active = query.trim().toLowerCase() === label.toLowerCase();
+                        return (
+                          <TouchableOpacity
+                            key={term.id}
+                            style={[
+                              styles.keywordGridItem,
+                              {
+                                backgroundColor: active ? colors.primary : colors.surfaceAlt,
+                                borderColor: active ? colors.primary : colors.border,
+                              },
+                            ]}
+                            onPress={() => selectKeyword(term)}
+                          >
+                            <Text
+                              style={[
+                                styles.keywordGridText,
+                                { color: active ? "#fff" : colors.foreground },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {label}
+                            </Text>
+                            {term.transliteration && lang.id === "en" && (
+                              <Text
+                                style={[
+                                  styles.keywordGridSub,
+                                  { color: active ? "#ffffffcc" : colors.mutedForeground },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {term.transliteration}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Results ── */}
       <FlatList
         data={results}
@@ -698,6 +799,7 @@ export default function QuranSearchScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  keywordsSection: { marginTop: 4 },
   termsRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
   termChip: {
     paddingHorizontal: 12,
@@ -707,6 +809,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   termChipText: { fontSize: 12, fontWeight: "600" },
+  browseAllChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  browseAllText: { fontSize: 12, fontWeight: "700" },
 
   // Search bar
   searchBox: {
@@ -827,4 +937,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tipText: { fontSize: 14, fontWeight: "600" },
+
+  // Keywords modal
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+  keywordsModal: {
+    height: "85%",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 16,
+  },
+  keywordsModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+  },
+  keywordsModalTitle: { fontSize: 20, fontWeight: "700" },
+  keywordsModalSub: {
+    fontSize: 13,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  closeBtn: { padding: 6 },
+  keywordsModalContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  categorySection: { marginTop: 18 },
+  categoryTitle: { fontSize: 14, fontWeight: "700", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 },
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  keywordGridItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  keywordGridText: { fontSize: 14, fontWeight: "600" },
+  keywordGridSub: { fontSize: 11, marginTop: 2 },
 });
