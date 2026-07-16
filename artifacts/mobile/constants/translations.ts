@@ -65,7 +65,7 @@ export const translations = {
     getStarted: 'Get Started',
     // Masjid
     nearbyMasjids: 'Nearby Masjids', findingMasjids: 'Finding nearby masjids...',
-    noMasjidsFound: 'No masjids found nearby', openMaps: 'Open in Maps',
+    noMasjidsFound: 'No masjids found nearby', openMaps: 'Open in Maps', away: 'away',
   },
   ar: {
     home: 'الرئيسية', quran: 'القرآن', library: 'المكتبة', planner: 'المخطط', more: 'المزيد',
@@ -115,7 +115,7 @@ export const translations = {
     selectLanguage: 'اختر لغتك', welcomeTitle: 'مرحبًا بك في دين ودنيا',
     welcomeSubtitle: 'رفيقك الإسلامي الشامل', getStarted: 'ابدأ الآن',
     nearbyMasjids: 'المساجد القريبة', findingMasjids: 'البحث عن المساجد القريبة...',
-    noMasjidsFound: 'لم يتم العثور على مساجد قريبة', openMaps: 'فتح في الخرائط',
+    noMasjidsFound: 'لم يتم العثور على مساجد قريبة', openMaps: 'فتح في الخرائط', away: 'على بعد',
   },
   ur: {
     home: 'ہوم', quran: 'قرآن', library: 'لائبریری', planner: 'پلانر', more: 'مزید',
@@ -165,7 +165,7 @@ export const translations = {
     selectLanguage: 'اپنی زبان منتخب کریں', welcomeTitle: 'دین و دنیا میں خوش آمدید',
     welcomeSubtitle: 'آپ کا مکمل اسلامی ساتھی', getStarted: 'شروع کریں',
     nearbyMasjids: 'قریبی مساجد', findingMasjids: 'قریبی مساجد تلاش ہو رہی ہیں...',
-    noMasjidsFound: 'قریب کوئی مسجد نہیں ملی', openMaps: 'نقشے میں کھولیں',
+    noMasjidsFound: 'قریب کوئی مسجد نہیں ملی', openMaps: 'نقشے میں کھولیں', away: 'دور',
   },
 };
 

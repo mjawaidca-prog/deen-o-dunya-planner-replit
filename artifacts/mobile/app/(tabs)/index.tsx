@@ -9,6 +9,13 @@ import { usePrayer } from '@/context/PrayerContext';
 import { useApp, DailyPrayers } from '@/context/AppContext';
 import PrayerCountdown from '@/components/PrayerCountdown';
 import { LOCAL_HADITHS } from '@/constants/hadithBooks';
+import { Language } from '@/constants/translations';
+
+const LANGUAGES: { code: Language; native: string }[] = [
+  { code: 'en', native: 'English' },
+  { code: 'ar', native: 'العربية' },
+  { code: 'ur', native: 'اردو' },
+];
 
 const PRAYERS: { key: keyof DailyPrayers; label: string; arabic: string }[] = [
   { key: 'fajr', label: 'Fajr', arabic: 'الفجر' },
@@ -35,7 +42,7 @@ function todayKey() {
 
 export default function HomeScreen() {
   const colors = useColors();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const { hijriDate, location, requestLocation } = usePrayer();
   const { getDayRecord, updatePrayer } = useApp();
   const today = todayKey();
@@ -66,6 +73,28 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => router.push('/settings')} style={[styles.settingsBtn, { backgroundColor: colors.surface }]}>
             <Feather name="settings" size={20} color={colors.mutedForeground} />
           </TouchableOpacity>
+        </View>
+
+        {/* Language Selector */}
+        <View style={[styles.langBar, { backgroundColor: colors.card }]}>
+          {LANGUAGES.map(lang => {
+            const active = language === lang.code;
+            return (
+              <TouchableOpacity
+                key={lang.code}
+                onPress={() => setLanguage(lang.code)}
+                activeOpacity={0.7}
+                style={[
+                  styles.langPill,
+                  active && { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={[styles.langPillText, { color: active ? '#fff' : colors.foreground }]}>
+                  {lang.native}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Prayer Countdown */}
@@ -166,4 +195,7 @@ const styles = StyleSheet.create({
   hadithFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   hadithNarrator: { fontSize: 12, fontWeight: '500' },
   hadithGrade: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  langBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginBottom: 16, padding: 6, borderRadius: 12 },
+  langPill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10 },
+  langPillText: { fontSize: 13, fontWeight: '600' },
 });

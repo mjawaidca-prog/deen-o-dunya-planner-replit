@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -22,6 +22,17 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function formatDistance(km?: number): string {
+  if (km === undefined || Number.isNaN(km)) return '';
+  if (km < 1) return `${(km * 1000).toFixed(0)}m`;
+  return `${km.toFixed(1)}km`;
+}
+
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
 export default function MasjidScreen() {
   const colors = useColors();
   const { t } = useLanguage();
@@ -29,9 +40,7 @@ export default function MasjidScreen() {
   const [masjids, setMasjids] = useState<Masjid[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const MapView = useRef<any>(null);
 
-  // Lazily load MapView (native only)
   const [MapComponent, setMapComponent] = useState<React.ComponentType<any> | null>(null);
   const [MarkerComponent, setMarkerComponent] = useState<React.ComponentType<any> | null>(null);
 
@@ -44,49 +53,102 @@ export default function MasjidScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!location) return;
-    fetchMasjids(location.lat, location.lon);
-  }, [location]);
-
-  const fetchMasjids = async (lat: number, lon: number) => {
+  const fetchMasjids = useCallback(async (lat: number, lon: number) => {
     setLoading(true);
     setError(null);
     try {
-      const query = `[out:json];node[amenity=place_of_worship][religion=muslim](around:5000,${lat},${lon});out;`;
-      const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const results: Masjid[] = (data.elements || []).map((el: any) => ({
-        id: el.id,
-        name: el.tags?.name || el.tags?.['name:en'] || 'Unnamed Mosque',
-        lat: el.lat,
-        lon: el.lon,
-        distance: getDistanceKm(lat, lon, el.lat, el.lon),
-      })).sort((a: Masjid, b: Masjid) => (a.distance ?? 0) - (b.distance ?? 0)).slice(0, 20);
-      setMasjids(results);
+      // Broaden search: mosque tags + place_of_worship with religion=muslim, across nodes, ways and relations.
+      const query = `[out:json][timeout:15];(
+        node["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon});
+        node["amenity"="mosque"](around:5000,${lat},${lon});
+        node["building"="mosque"](around:5000,${lat},${lon});
+        way["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon});
+        way["amenity"="mosque"](around:5000,${lat},${lon});
+        way["building"="mosque"](around:5000,${lat},${lon});
+        relation["amenity"="place_of_worship"]["religion"="muslim"](around:5000,${lat},${lon});
+        relation["amenity"="mosque"](around:5000,${lat},${lon});
+        relation["building"="mosque"](around:5000,${lat},${lon});
+      );out center;`;
+
+      let data: any = null;
+      let lastErr: any = null;
+      for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+          const url = `${endpoint}?data=${encodeURIComponent(query)}`;
+          const res = await fetch(url, { method: 'GET' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          data = await res.json();
+          if (data && Array.isArray(data.elements)) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data || !Array.isArray(data.elements)) {
+        throw lastErr || new Error('No data');
+      }
+
+      const seen = new Set<number>();
+      const results: Masjid[] = [];
+      for (const el of data.elements) {
+        if (seen.has(el.id)) continue;
+        seen.add(el.id);
+        const elLat = el.lat ?? el.center?.lat;
+        const elLon = el.lon ?? el.center?.lon;
+        if (elLat === undefined || elLon === undefined) continue;
+        const name =
+          el.tags?.name ||
+          el.tags?.['name:en'] ||
+          el.tags?.['name:ar'] ||
+          el.tags?.['name:ur'] ||
+          t('nearbyMasjids');
+        results.push({
+          id: el.id,
+          name,
+          lat: elLat,
+          lon: elLon,
+          distance: getDistanceKm(lat, lon, elLat, elLon),
+        });
+      }
+
+      results.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+      setMasjids(results.slice(0, 25));
     } catch (e) {
-      setError('Failed to find nearby masjids. Check your internet connection.');
+      console.warn('[Masjid] fetch failed', e);
+      setError(t('error'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    if (location) fetchMasjids(location.lat, location.lon);
+  }, [location, fetchMasjids]);
 
   const openInMaps = (m: Masjid) => {
+    const label = m.name || 'Mosque';
     const url = Platform.OS === 'ios'
-      ? `maps:?q=${encodeURIComponent(m.name)}&ll=${m.lat},${m.lon}`
-      : `geo:${m.lat},${m.lon}?q=${encodeURIComponent(m.name)}`;
-    Linking.openURL(url);
+      ? `maps:?q=${encodeURIComponent(label)}&ll=${m.lat},${m.lon}`
+      : `geo:${m.lat},${m.lon}?q=${encodeURIComponent(label)}`;
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label)}&query=${m.lat},${m.lon}`);
+    });
+  };
+
+  const searchInGoogleMaps = () => {
+    if (!location) return;
+    const url = `https://www.google.com/maps/search/mosque/@${location.lat},${location.lon},14z`;
+    Linking.openURL(url).catch(() => Alert.alert(t('error'), 'Could not open maps.'));
   };
 
   if (!location) {
     return (
-      <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.center, { backgroundColor: colors.background }]} edges={['bottom']}>
         <Text style={styles.emoji}>🕌</Text>
-        <Text style={[styles.centerTitle, { color: colors.foreground }]}>Find Nearby Masjids</Text>
-        <Text style={[styles.centerSub, { color: colors.mutedForeground }]}>Enable location to discover mosques near you</Text>
+        <Text style={[styles.centerTitle, { color: colors.foreground }]}>{t('nearbyMasjids')}</Text>
+        <Text style={[styles.centerSub, { color: colors.mutedForeground }]}>{t('locationPermission')}</Text>
         <TouchableOpacity style={[styles.locBtn, { backgroundColor: colors.primary }]} onPress={requestLocation}>
-          <Text style={styles.locBtnText}>Enable Location</Text>
+          <Text style={styles.locBtnText}>{t('getLocation')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -112,7 +174,7 @@ export default function MasjidScreen() {
       {loading && (
         <View style={[styles.loadingRow, { backgroundColor: colors.card }]}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Finding nearby masjids...</Text>
+          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>{t('findingMasjids')}</Text>
         </View>
       )}
 
@@ -120,9 +182,14 @@ export default function MasjidScreen() {
       {error && !loading && (
         <View style={[styles.errorRow, { backgroundColor: colors.card }]}>
           <Text style={[styles.errorText, { color: colors.foreground }]}>{error}</Text>
-          <TouchableOpacity onPress={() => fetchMasjids(location.lat, location.lon)}>
-            <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
-          </TouchableOpacity>
+          <View style={styles.errorActions}>
+            <TouchableOpacity onPress={() => fetchMasjids(location.lat, location.lon)}>
+              <Text style={[styles.retryText, { color: colors.primary }]}>{t('retry')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={searchInGoogleMaps}>
+              <Text style={[styles.retryText, { color: colors.gold }]}>Open Maps</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -130,13 +197,14 @@ export default function MasjidScreen() {
       {!loading && masjids.length > 0 && (
         <View style={[styles.listContainer, { backgroundColor: colors.background }]}>
           <Text style={[styles.listTitle, { color: colors.foreground }]}>
-            {masjids.length} masjids found within 5km
+            {masjids.length} {t('nearbyMasjids').toLowerCase()} (5km)
           </Text>
-          {masjids.map((m, i) => (
+          {masjids.map((m) => (
             <TouchableOpacity
               key={m.id}
               style={[styles.masjidRow, { borderBottomColor: colors.border }]}
               onPress={() => openInMaps(m)}
+              activeOpacity={0.8}
             >
               <View style={[styles.masjidIcon, { backgroundColor: colors.primary + '22' }]}>
                 <Text style={styles.masjidEmoji}>🕌</Text>
@@ -144,7 +212,7 @@ export default function MasjidScreen() {
               <View style={styles.masjidInfo}>
                 <Text style={[styles.masjidName, { color: colors.foreground }]} numberOfLines={1}>{m.name}</Text>
                 <Text style={[styles.masjidDist, { color: colors.mutedForeground }]}>
-                  {m.distance !== undefined ? `${(m.distance * 1000).toFixed(0)}m away` : ''}
+                  {formatDistance(m.distance)} {t('away')}
                 </Text>
               </View>
               <Feather name="map-pin" size={16} color={colors.primary} />
@@ -155,7 +223,11 @@ export default function MasjidScreen() {
 
       {!loading && !error && masjids.length === 0 && (
         <View style={styles.center}>
-          <Text style={[styles.centerSub, { color: colors.mutedForeground }]}>No mosques found within 5km</Text>
+          <Text style={styles.emoji}>🕌</Text>
+          <Text style={[styles.centerSub, { color: colors.mutedForeground }]}>{t('noMasjidsFound')}</Text>
+          <TouchableOpacity style={[styles.locBtn, { backgroundColor: colors.gold }]} onPress={searchInGoogleMaps}>
+            <Text style={styles.locBtnText}>Search in Google Maps</Text>
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
@@ -175,6 +247,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 14 },
   errorRow: { margin: 12, padding: 16, borderRadius: 12, gap: 8 },
   errorText: { fontSize: 14, lineHeight: 20 },
+  errorActions: { flexDirection: 'row', gap: 16 },
   retryText: { fontSize: 14, fontWeight: '600' },
   listContainer: { flex: 1, paddingTop: 8 },
   listTitle: { fontSize: 13, fontWeight: '600', paddingHorizontal: 16, paddingVertical: 6 },
