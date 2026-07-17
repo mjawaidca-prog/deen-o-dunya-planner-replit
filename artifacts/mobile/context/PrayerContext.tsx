@@ -53,6 +53,8 @@ interface PrayerContextType {
   setCalculationMethod: (method: number) => void;
   setAdhanEnabled: (enabled: boolean) => Promise<void>;
   refreshPrayerTimes: () => Promise<void>;
+  testAdhanNotification: () => Promise<void>;
+  scheduledCount: number;
 }
 
 export const CALC_METHODS = [
@@ -107,6 +109,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const [adhanEnabled, setAdhanEnabledState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduledCount, setScheduledCount] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -234,21 +237,32 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         for (const prayer of PRAYER_NAMES) {
           const prayerDate = parseTime(day.timings[prayer as keyof PrayerTimes], baseDate);
           if (prayerDate > now && scheduled < 100) {
+            const content: any = {
+              title: `${prayer} — Adhan`,
+              body: `It is time for ${prayer} prayer`,
+              sound: 'adhan.mp3',
+            };
+            if (Platform.OS === 'android') {
+              content.channelId = ADHAN_CHANNEL_ID;
+              content.priority = Notifications.AndroidNotificationPriority.HIGH;
+            } else {
+              // iOS: mark as time-sensitive so it has a better chance of playing the sound
+              // even when Focus / Do Not Disturb is active.
+              content.interruptionLevel = 'timeSensitive';
+            }
             await Notifications.scheduleNotificationAsync({
-              content: {
-                title: `${prayer} — Adhan`,
-                body: `It is time for ${prayer} prayer`,
-                sound: 'adhan.mp3',
-                ...(Platform.OS === 'android' && { channelId: ADHAN_CHANNEL_ID }),
-                priority: Notifications.AndroidNotificationPriority.HIGH,
-              },
+              content,
               trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: prayerDate },
             });
             scheduled++;
           }
         }
       }
-    } catch {}
+      setScheduledCount(scheduled);
+      console.log(`[Adhan] scheduled ${scheduled} notifications`);
+    } catch (err) {
+      console.warn('[Adhan] scheduling failed', err);
+    }
   };
 
   const formatDateKey = (date: Date) => {
@@ -323,10 +337,53 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
     if (location) await fetchPrayerTimes(location.lat, location.lon, calculationMethod);
   };
 
+  const testAdhanNotification = async () => {
+    if (!Notifications) {
+      alert('Adhan notifications are not available in Expo Go or on web.');
+      return;
+    }
+    try {
+      const perm = await Notifications.requestPermissionsAsync();
+      const granted = perm.granted || (perm as any).status === 'granted';
+      if (!granted) {
+        alert('Notification permission is required to test Adhan.');
+        return;
+      }
+      const testDate = new Date(Date.now() + 5000);
+      const content: any = {
+        title: 'Adhan Test',
+        body: 'This is a test of the Adhan notification sound.',
+        sound: 'adhan.mp3',
+      };
+      if (Platform.OS === 'android') {
+        content.channelId = ADHAN_CHANNEL_ID;
+        content.priority = Notifications.AndroidNotificationPriority.HIGH;
+      } else {
+        content.interruptionLevel = 'timeSensitive';
+      }
+      await Notifications.scheduleNotificationAsync({
+        content,
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: testDate },
+      });
+      alert(`Test Adhan scheduled for ${testDate.toLocaleTimeString()}. Close the app or wait for the notification.`);
+    } catch (err) {
+      console.warn('[Adhan] test notification failed', err);
+      alert('Failed to schedule test Adhan.');
+    }
+  };
+
+  useEffect(() => {
+    if (!Notifications) return;
+    Notifications.getAllScheduledNotificationsAsync().then(notifications => {
+      setScheduledCount(notifications.length);
+    }).catch(() => {});
+  }, []);
+
   return (
     <PrayerContext.Provider value={{
       prayerTimes, hijriDate, nextPrayer, location, calculationMethod, adhanEnabled,
       loading, error, requestLocation, setCalculationMethod, setAdhanEnabled, refreshPrayerTimes,
+      testAdhanNotification, scheduledCount,
     }}>
       {children}
     </PrayerContext.Provider>

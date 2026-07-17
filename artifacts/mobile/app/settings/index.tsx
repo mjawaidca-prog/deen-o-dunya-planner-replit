@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useApp();
-  const { calculationMethod, setCalculationMethod, adhanEnabled, setAdhanEnabled } = usePrayer();
+  const { calculationMethod, setCalculationMethod, adhanEnabled, setAdhanEnabled, testAdhanNotification, scheduledCount } = usePrayer();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -102,6 +102,22 @@ export default function SettingsScreen() {
               thumbColor="#fff"
             />
           </View>
+          <View style={[styles.row, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>Test Adhan</Text>
+              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>
+                {adhanEnabled ? `${scheduledCount} notifications scheduled` : 'Enable Adhan above to test'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={testAdhanNotification}
+              disabled={!adhanEnabled}
+              activeOpacity={0.7}
+              style={[styles.testBtn, { backgroundColor: adhanEnabled ? colors.primary : colors.border }]}
+            >
+              <Text style={[styles.testBtnText, { color: adhanEnabled ? '#fff' : colors.mutedForeground }]}>Play</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* About */}
@@ -134,6 +150,8 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { fontSize: 15 },
   rowSub: { fontSize: 12, marginTop: 1 },
+  testBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  testBtnText: { fontSize: 13, fontWeight: '600' },
   aboutCard: { alignItems: 'center', padding: 24, gap: 6 },
   aboutEmoji: { fontSize: 40 },
   aboutTitle: { fontSize: 18, fontWeight: '700' },
