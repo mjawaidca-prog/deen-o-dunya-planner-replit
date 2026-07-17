@@ -21,6 +21,7 @@ import {
   HADITH_TOPICS,
 } from "@/constants/hadithBooks";
 import PosterModal, { PosterItem } from "@/components/PosterModal";
+import ClipModal from "@/components/ClipModal";
 import { ISLAMIC_TERMS, IslamicTerm } from "@/constants/islamicTerms";
 
 type Grade = "all" | "sahih" | "hasan" | "daif";
@@ -38,6 +39,9 @@ export default function HadithBookScreen() {
   const [topicFilter, setTopicFilter] = useState("");
   const [showUrdu, setShowUrdu] = useState(language === "ur");
   const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
+  const [clipItem, setClipItem] = useState<(typeof LOCAL_HADITHS)[0] | null>(
+    null,
+  );
   const [activeTerm, setActiveTerm] = useState<IslamicTerm | null>(null);
 
   const bookInfo = HADITH_BOOKS.find((b) => b.id === book);
@@ -351,6 +355,16 @@ export default function HadithBookScreen() {
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={() => setClipItem(item)}
+                  style={styles.shareBtn}
+                >
+                  <Feather
+                    name="video"
+                    size={14}
+                    color={colors.mutedForeground}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => handleShare(item)}
                   style={styles.shareBtn}
                 >
@@ -439,6 +453,26 @@ export default function HadithBookScreen() {
         item={posterItem}
         onClose={() => setPosterItem(null)}
       />
+      {clipItem ? (
+        <ClipModal
+          visible
+          mode="hadith"
+          appName="Deen o Dunya Planner"
+          hadith={{
+            bookName: bookInfo?.name ?? "Hadith",
+            bookArabicName: bookInfo?.arabicName ?? "حديث",
+            item: {
+              number: clipItem.number,
+              arabic: clipItem.arabic,
+              translation: showUrdu ? clipItem.urdu : clipItem.english,
+              narrator: clipItem.narrator,
+              chapter: clipItem.chapter,
+            },
+            translationLabel: showUrdu ? "Urdu" : "English",
+          }}
+          onClose={() => setClipItem(null)}
+        />
+      ) : null}
       {/* ─── Detail Modal ─── */}
       <Modal
         visible={!!selected}
@@ -500,6 +534,18 @@ export default function HadithBookScreen() {
                 >
                   <Feather
                     name="image"
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </TouchableOpacity>
+              )}
+              {selected && (
+                <TouchableOpacity
+                  onPress={() => setClipItem(selected)}
+                  style={styles.modalShareBtn}
+                >
+                  <Feather
+                    name="video"
                     size={18}
                     color={colors.mutedForeground}
                   />
