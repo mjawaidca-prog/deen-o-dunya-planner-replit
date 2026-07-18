@@ -7,8 +7,6 @@ import { pipeline } from "node:stream/promises";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import sharp from "sharp";
-import ffmpegStatic from "ffmpeg-static";
-import ffprobeStatic from "ffprobe-static";
 
 export interface ClipSegmentInput {
   reference: string;
@@ -37,8 +35,8 @@ const HEIGHT = 1920;
 const ROOT_DIR = path.join(os.tmpdir(), "deen-o-dunya-clips");
 const MAX_RENDER_SEGMENTS = 12;
 
-const FFMPEG_PATH = ffmpegStatic ?? "ffmpeg";
-const FFPROBE_PATH = ffprobeStatic.path;
+const FFMPEG_PATH = "ffmpeg";
+const FFPROBE_PATH = "ffprobe";
 
 function escapeXml(value: string) {
   return value
