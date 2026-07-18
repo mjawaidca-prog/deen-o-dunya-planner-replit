@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "_wt1pztv93pj455-3LaHs"
+uri = "file://screenshots/dua-journey-screen.jpg"
+type = "image"
+title = "Current Dua Journey screen"
+
+[[outputs]]
+id = "FZIEvFC1Hoi6kMzj6aXj3"
+uri = "file://screenshots/dua-journey-back-button.jpg"
+type = "image"
+title = "Dua Journey screen with prominent Back button"
