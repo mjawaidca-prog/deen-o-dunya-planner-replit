@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useLanguage } from '@/context/LanguageContext';
 import { useColors } from '@/hooks/useColors';
 import { DUA_JOURNEYS, JOURNEY_UI, MoodEntry } from '@/constants/duaJourneys';
@@ -55,11 +56,27 @@ export default function DuaJourneyMoodSelector() {
     );
   };
 
+  const backLabel = JOURNEY_UI.back[language as keyof typeof JOURNEY_UI.back] ?? JOURNEY_UI.back.en;
+
   return (
     <SafeAreaView
       style={[styles.root, { backgroundColor: colors.background }]}
       edges={['top', 'left', 'right']}
     >
+      {/* Back button */}
+      <TouchableOpacity
+        style={[styles.backBtn, { alignSelf: isRTL ? 'flex-end' : 'flex-start' }]}
+        onPress={() => router.back()}
+        activeOpacity={0.7}
+      >
+        <Feather
+          name={isRTL ? 'arrow-right' : 'arrow-left'}
+          size={16}
+          color="#8B8880"
+        />
+        <Text style={styles.backLabel}>{backLabel}</Text>
+      </TouchableOpacity>
+
       {/* Header */}
       <View style={styles.headerWrap}>
         <Text
@@ -92,6 +109,32 @@ export default function DuaJourneyMoodSelector() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 50,
+    backgroundColor: '#F0EDE5',
+    borderWidth: 1,
+    borderColor: '#E5E0D5',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    marginTop: 12,
+    marginHorizontal: 24,
+    alignSelf: 'flex-start',
+  },
+  backLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Inter_600SemiBold',
+    color: '#8B8880',
+  },
 
   headerWrap: {
     paddingHorizontal: 24,
