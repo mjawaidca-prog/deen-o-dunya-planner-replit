@@ -29,8 +29,9 @@ router.post("/clips/render", async (req, res, next) => {
         arabic: segment.arabic?.trim() || "",
         translation: segment.translation?.trim() || "",
         audioUrl: segment.audioUrl?.trim() || undefined,
+        audioTranslationUrl: (segment as { audioTranslationUrl?: string }).audioTranslationUrl?.trim() || undefined,
       }))
-      .filter((segment) => segment.reference && segment.arabic && segment.translation);
+      .filter((segment) => segment.reference && segment.arabic);
 
     if (normalizedSegments.length === 0) {
       res.status(400).json({
