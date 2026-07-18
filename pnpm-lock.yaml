@@ -227,6 +227,9 @@ importers:
       '@expo-google-fonts/noto-nastaliq-urdu':
         specifier: ^0.4.2
         version: 0.4.2
+      '@expo-google-fonts/noto-sans-arabic':
+        specifier: ^0.4.3
+        version: 0.4.3
       expo-av:
         specifier: ^16.0.8
         version: 16.0.8(expo@54.0.35)(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1397,6 +1400,9 @@ packages:
 
   '@expo-google-fonts/noto-nastaliq-urdu@0.4.2':
     resolution: {integrity: sha512-ciSPIxljdusLFb66Ov5uP8vXNuP2/CPAxwHqF2lIHqQwxZ8YtYf1B9VGiK0hcwp4XqmX6/hog8QNgViWoY9KGg==}
+
+  '@expo-google-fonts/noto-sans-arabic@0.4.3':
+    resolution: {integrity: sha512-YvtxyuegxPegu2g5urXJ+gQxRp8i798nQswTmEjwXOWR/fqy0Gvey6h5IoNRBrc43SxRxPezqCiR9ivpfPAXSg==}
 
   '@expo/cli@54.0.23':
     resolution: {integrity: sha512-km0h72SFfQCmVycH/JtPFTVy69w6Lx1cHNDmfLfQqgKFYeeHTjx7LVDP4POHCtNxFP2UeRazrygJhlh4zz498g==}
@@ -7006,6 +7012,8 @@ snapshots:
   '@expo-google-fonts/inter@0.4.2': {}
 
   '@expo-google-fonts/noto-nastaliq-urdu@0.4.2': {}
+
+  '@expo-google-fonts/noto-sans-arabic@0.4.3': {}
 
   '@expo/cli@54.0.23(expo-router@6.0.24)(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(typescript@5.9.3)':
     dependencies:

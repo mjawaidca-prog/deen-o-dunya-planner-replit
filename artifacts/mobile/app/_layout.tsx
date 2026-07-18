@@ -9,6 +9,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { AmiriQuran_400Regular } from '@expo-google-fonts/amiri-quran';
 import { NotoNastaliqUrdu_400Regular } from '@expo-google-fonts/noto-nastaliq-urdu';
+import { NotoSansArabic_400Regular } from '@expo-google-fonts/noto-sans-arabic';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -58,6 +59,10 @@ function RootLayoutNav() {
       {/* Kids mode & Ramadan */}
       <Stack.Screen name="quran/kids" options={{ title: 'Kids Quran', headerShown: false }} />
       <Stack.Screen name="planner/ramadan" options={{ title: 'Ramadan Tracker', headerShown: false }} />
+
+      {/* Emotion-Based Dua Journeys */}
+      <Stack.Screen name="dua-journey/index" options={{ headerShown: false }} />
+      <Stack.Screen name="dua-journey/[mood]" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -67,6 +72,7 @@ export default function RootLayout() {
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
     AmiriQuran_400Regular,
     NotoNastaliqUrdu_400Regular,
+    NotoSansArabic_400Regular,
   });
 
   useEffect(() => {

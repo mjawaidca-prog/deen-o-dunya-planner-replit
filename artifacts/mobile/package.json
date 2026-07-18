@@ -68,6 +68,7 @@
   "dependencies": {
     "@expo-google-fonts/amiri-quran": "^0.4.1",
     "@expo-google-fonts/noto-nastaliq-urdu": "^0.4.2",
+    "@expo-google-fonts/noto-sans-arabic": "^0.4.3",
     "expo-av": "^16.0.8",
     "expo-notifications": "~0.32.17",
     "expo-sensors": "~15.0.8",
