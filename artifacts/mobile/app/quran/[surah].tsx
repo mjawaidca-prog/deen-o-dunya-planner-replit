@@ -13,6 +13,7 @@ import { useAudio } from '@/context/AudioContext';
 import { SURAHS, TRANSLATION_EDITIONS, TAFSEER_EDITIONS } from '@/constants/quranData';
 import { QARIS } from '@/constants/qaris';
 import PosterModal, { PosterItem } from '@/components/PosterModal';
+import ClipModal from '@/components/ClipModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -58,13 +59,14 @@ interface AyahCardProps {
   onBookmark: (item: Ayah) => void;
   onShare: (item: Ayah) => void;
   onPoster: (item: Ayah) => void;
+  onClip: (item: Ayah) => void;
   onPlay: (ayah: number) => void;
   onStop: () => void;
 }
 
 const AyahCard = memo(function AyahCard({
   item, isActive, isBookmarked, arabicFontSize, tafsirEnabled, tafsirText,
-  colors, surahNum, totalAyahs, onBookmark, onShare, onPoster, onPlay, onStop,
+  colors, surahNum, totalAyahs, onBookmark, onShare, onPoster, onClip, onPlay, onStop,
 }: AyahCardProps) {
   // Animated glow — pulses when this ayah is the active one
   const glow = useRef(new Animated.Value(0)).current;
@@ -121,6 +123,9 @@ const AyahCard = memo(function AyahCard({
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onPoster(item)} style={styles.actionBtn} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
             <Feather name="image" size={16} color={colors.mutedForeground} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onClip(item)} style={styles.actionBtn} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Feather name="video" size={16} color={colors.mutedForeground} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => isActive ? onStop() : onPlay(item.numberInSurah)}
@@ -195,6 +200,9 @@ export default function QuranSurahScreen() {
 
   // Poster
   const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
+  const [showClipModal, setShowClipModal] = useState(false);
+  const [clipStartAyah, setClipStartAyah] = useState(1);
+  const [clipEndAyah, setClipEndAyah] = useState(1);
   // Translation audio
   const [showTranslationVoicePicker, setShowTranslationVoicePicker] = useState(false);
 
@@ -382,6 +390,11 @@ export default function QuranSurahScreen() {
             ar: ayah.text,
             ...(isUrdu ? { ur: ayah.translation } : { en: ayah.translation }),
           });
+        }}
+      onClip={(ayah) => {
+          setClipStartAyah(ayah.numberInSurah);
+          setClipEndAyah(ayah.numberInSurah);
+          setShowClipModal(true);
         }}
       onPlay={(ayah) => play(surahNum, ayah, ayahs.length)}
       onStop={stop}
@@ -651,6 +664,24 @@ export default function QuranSurahScreen() {
         visible={posterItem !== null}
         item={posterItem}
         onClose={() => setPosterItem(null)}
+      />
+
+      <ClipModal
+        visible={showClipModal}
+        mode="quran"
+        appName="Deen o Dunya Planner"
+        quran={{
+          surahNumber: surahNum,
+          surahName: surahInfo?.name ?? '',
+          surahEnglishName: surahInfo?.nameEnglish ?? '',
+          ayahs,
+          defaultStartAyah: clipStartAyah,
+          defaultEndAyah: clipEndAyah,
+          translationLabel: selectedTranslation.name,
+          qaris: QARIS,
+          currentQariId: currentQari.id,
+        }}
+        onClose={() => setShowClipModal(false)}
       />
     </SafeAreaView>
   );
