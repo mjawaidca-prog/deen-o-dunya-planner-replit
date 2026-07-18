@@ -15,6 +15,7 @@ const FEATURES = [
   { icon: '📖', label: 'seerah', route: '/seerah', color: '#059669', desc: 'Islamic stories' },
   { icon: '🤲', label: 'duas', route: '/duas', color: '#D97706', desc: 'Daily supplications' },
   { icon: '✨', label: 'namesOfAllah', route: '/names', color: '#9333EA', desc: 'Asmaul Husna' },
+  { icon: '🫀', label: 'Dua Journey', route: '/dua-journey', color: '#E11D48', desc: 'Mood-based supplications' },
 ];
 
 const SPECIAL_FEATURES = [

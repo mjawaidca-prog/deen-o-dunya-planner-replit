@@ -29,6 +29,7 @@ const QUICK_TILES = [
   { icon: '🧭', label: 'Qibla', route: '/qibla' },
   { icon: '📿', label: 'Tasbeeh', route: '/tasbeeh' },
   { icon: '🤲', label: 'Duas', route: '/duas' },
+  { icon: '🫀', label: 'Dua Journey', route: '/dua-journey' },
   { icon: '✨', label: '99 Names', route: '/names' },
   { icon: '📖', label: 'Seerah', route: '/seerah' },
   { icon: '🕌', label: 'Masjids', route: '/masjid' },
