@@ -15,11 +15,10 @@ export interface ClipSegmentInput {
   /** Arabic recitation audio URL */
   audioUrl?: string | null;
   /**
-   * BCP-47 language tag (e.g. "en", "ur"). When set and `translation` is
-   * non-empty, the server generates TTS audio from `translation` and appends
-   * it after the Arabic recitation.
+   * URL to a pre-recorded translation audio file (e.g. EveryAyah CDN).
+   * When set, appended after the Arabic recitation audio for this segment.
    */
-  translationLang?: string | null;
+  audioTranslationUrl?: string | null;
 }
 
 export interface ClipRenderInput {
@@ -288,56 +287,6 @@ function escapeConcatPath(filePath: string) {
   return filePath.replaceAll("'", "'\\''");
 }
 
-/** Split text into chunks that Google TTS can handle (≤150 chars, on word boundaries). */
-function splitTtsChunks(text: string, maxLen = 150): string[] {
-  const clean = text.replace(/\s+/g, " ").trim();
-  if (clean.length <= maxLen) return [clean];
-
-  const words = clean.split(" ");
-  const chunks: string[] = [];
-  let current = "";
-
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length <= maxLen) {
-      current = candidate;
-    } else {
-      if (current) chunks.push(current);
-      current = word;
-    }
-  }
-  if (current) chunks.push(current);
-  return chunks;
-}
-
-/**
- * Generate spoken TTS audio for `text` in `lang` using Google's TTS endpoint.
- * Splits long text into chunks and concatenates the results.
- */
-async function generateTtsAudio(
-  text: string,
-  lang: string,
-  outputPath: string,
-  workDir: string,
-): Promise<void> {
-  const chunks = splitTtsChunks(text);
-  const ttsUrl = (chunk: string) =>
-    `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(chunk)}`;
-
-  if (chunks.length === 1) {
-    await downloadFile(ttsUrl(chunks[0]), outputPath);
-    return;
-  }
-
-  const chunkPaths: string[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const chunkPath = path.join(workDir, `tts-chunk-${i}.mp3`);
-    await downloadFile(ttsUrl(chunks[i]), chunkPath);
-    chunkPaths.push(chunkPath);
-  }
-
-  await createAudioConcat(chunkPaths, outputPath, workDir);
-}
 
 function estimateDuration(segment: ClipSegmentInput) {
   const lengthScore = (segment.arabic.length + segment.translation.length) / 150;
@@ -466,16 +415,16 @@ export async function renderClip(input: ClipRenderInput): Promise<ClipRenderResu
 
       let segmentAudioPath = arabicPath;
 
-      if (segment.translationLang && segment.translation) {
-        const ttsPath = path.join(audioDir, `tts-${pad}.mp3`);
+      if (segment.audioTranslationUrl) {
+        const translationPath = path.join(audioDir, `translation-${pad}.mp3`);
         const combinedPath = path.join(audioDir, `combined-${pad}.mp3`);
         try {
-          await generateTtsAudio(segment.translation, segment.translationLang, ttsPath, audioDir);
+          await downloadFile(segment.audioTranslationUrl, translationPath);
           // Concat: Arabic recitation → spoken translation
           const listPath = path.join(audioDir, `list-${pad}.txt`);
           await fs.writeFile(
             listPath,
-            `file '${escapeConcatPath(arabicPath)}'\nfile '${escapeConcatPath(ttsPath)}'`,
+            `file '${escapeConcatPath(arabicPath)}'\nfile '${escapeConcatPath(translationPath)}'`,
             "utf8",
           );
           await runCommand(FFMPEG_PATH, [
@@ -483,12 +432,12 @@ export async function renderClip(input: ClipRenderInput): Promise<ClipRenderResu
           ]);
           segmentAudioPath = combinedPath;
         } catch (err) {
-          console.warn(`TTS generation failed for segment ${index + 1}, using Arabic-only:`, err);
+          console.warn(`Translation audio failed for segment ${index + 1}, using Arabic-only:`, err);
         }
       }
 
       audioFiles.push(segmentAudioPath);
-      duration = clamp(await probeDuration(segmentAudioPath), 4, 60);
+      duration = clamp(await probeDuration(segmentAudioPath), 4, 40);
     }
 
     frameEntries.push({ filePath: framePath, duration });

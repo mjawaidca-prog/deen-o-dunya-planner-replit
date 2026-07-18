@@ -18,6 +18,7 @@ import { Qari, getAudioUrl } from "@/constants/qaris";
 import {
   AUDIO_TRANSLATORS,
   AudioTranslator,
+  getTranslationAudioUrl,
 } from "@/constants/audioTranslators";
 import { getAppOrigin } from "@/lib/runtime";
 
@@ -194,9 +195,13 @@ export default function ClipModal(props: Props) {
                 ayah.numberInSurah,
               )
             : undefined,
-          translationLang:
-            selectedAudioTranslator.language !== "none" && translation
-              ? selectedAudioTranslator.language
+          audioTranslationUrl:
+            selectedAudioTranslator.everyAyahFolder
+              ? getTranslationAudioUrl(
+                  selectedAudioTranslator.everyAyahFolder,
+                  props.quran.surahNumber,
+                  ayah.numberInSurah,
+                )
               : undefined,
         };
       });
