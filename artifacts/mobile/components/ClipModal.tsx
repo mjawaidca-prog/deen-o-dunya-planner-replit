@@ -203,6 +203,10 @@ export default function ClipModal(props: Props) {
                   ayah.numberInSurah,
                 )
               : undefined,
+          translationLang:
+            selectedAudioTranslator.language !== "none"
+              ? selectedAudioTranslator.language
+              : undefined,
         };
       });
   }, [props, quranRange, selectedQari, selectedAudioTranslator]);

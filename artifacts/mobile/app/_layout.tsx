@@ -7,6 +7,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts,
 } from '@expo-google-fonts/inter';
+import { AmiriQuran_400Regular } from '@expo-google-fonts/amiri-quran';
+import { NotoNastaliqUrdu_400Regular } from '@expo-google-fonts/noto-nastaliq-urdu';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -63,6 +65,8 @@ function RootLayoutNav() {
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
+    AmiriQuran_400Regular,
+    NotoNastaliqUrdu_400Regular,
   });
 
   useEffect(() => {

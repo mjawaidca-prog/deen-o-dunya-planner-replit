@@ -366,11 +366,11 @@ const styles = StyleSheet.create({
   },
 
   arabicText: {
-    fontSize: 22,
-    lineHeight: 40,
+    fontSize: 24,
+    lineHeight: 48,
     color: "#21302A",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "AmiriQuran_400Regular",
     writingDirection: "rtl",
     marginVertical: 8,
   },
@@ -382,10 +382,11 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   urduText: {
-    fontSize: 14,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 36,
     color: "#44543C",
     textAlign: "center",
+    fontFamily: "NotoNastaliqUrdu_400Regular",
     writingDirection: "rtl",
   },
 
