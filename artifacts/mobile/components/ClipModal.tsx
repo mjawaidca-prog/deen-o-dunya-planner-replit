@@ -18,7 +18,6 @@ import { Qari, getAudioUrl } from "@/constants/qaris";
 import {
   AUDIO_TRANSLATORS,
   AudioTranslator,
-  getAudioTranslationUrl,
 } from "@/constants/audioTranslators";
 import { getAppOrigin } from "@/lib/runtime";
 
@@ -184,13 +183,6 @@ export default function ClipModal(props: Props) {
         } else if (selectedAudioTranslator.language === "ur") {
           translation = ayah.translationUr ?? "";
         }
-        const audioTranslationUrl = selectedAudioTranslator.edition
-          ? getAudioTranslationUrl(
-              selectedAudioTranslator.edition,
-              props.quran.surahNumber,
-              ayah.numberInSurah,
-            )
-          : undefined;
         return {
           reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
           arabic: ayah.text,
@@ -202,7 +194,10 @@ export default function ClipModal(props: Props) {
                 ayah.numberInSurah,
               )
             : undefined,
-          audioTranslationUrl,
+          translationLang:
+            selectedAudioTranslator.language !== "none" && translation
+              ? selectedAudioTranslator.language
+              : undefined,
         };
       });
   }, [props, quranRange, selectedQari, selectedAudioTranslator]);
@@ -251,7 +246,7 @@ export default function ClipModal(props: Props) {
           subtitle: `${subtitle} - ${translationLabel}`,
           reciterLabel:
             props.mode === "quran" && selectedQari
-              ? selectedAudioTranslator.edition
+              ? selectedAudioTranslator.language !== "none"
                 ? `${selectedQari.name} + ${selectedAudioTranslator.name}`
                 : selectedQari.name
               : undefined,

@@ -29,7 +29,7 @@ router.post("/clips/render", async (req, res, next) => {
         arabic: segment.arabic?.trim() || "",
         translation: segment.translation?.trim() || "",
         audioUrl: segment.audioUrl?.trim() || undefined,
-        audioTranslationUrl: (segment as { audioTranslationUrl?: string }).audioTranslationUrl?.trim() || undefined,
+        translationLang: (segment as { translationLang?: string }).translationLang?.trim() || undefined,
       }))
       .filter((segment) => segment.reference && segment.arabic);
 
