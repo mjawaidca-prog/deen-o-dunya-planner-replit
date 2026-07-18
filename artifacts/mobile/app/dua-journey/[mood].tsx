@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { useLanguage } from '@/context/LanguageContext';
 import { useColors } from '@/hooks/useColors';
 import { DUA_JOURNEYS, JOURNEY_UI, MoodEntry } from '@/constants/duaJourneys';
@@ -24,6 +25,32 @@ export default function DuaJourneyScreen() {
   const entry: MoodEntry | undefined = DUA_JOURNEYS.find(
     (m) => m.mood_id === mood,
   );
+
+  // Stop speech when the user leaves this screen
+  useEffect(() => () => { Speech.stop(); }, []);
+
+  const toggleAudio = async () => {
+    if (!entry) return;
+    if (playing) {
+      await Speech.stop();
+      setPlaying(false);
+      return;
+    }
+    setPlaying(true);
+    try {
+      await Speech.speak(entry.dua_arabic, {
+        language: 'ar',
+        pitch: 1,
+        rate: 0.75,
+        onDone: () => setPlaying(false),
+        onStopped: () => setPlaying(false),
+        onError: () => setPlaying(false),
+      });
+    } catch (e) {
+      console.warn('Speech error:', e);
+      setPlaying(false);
+    }
+  };
 
   if (!entry) {
     return (
@@ -165,7 +192,7 @@ export default function DuaJourneyScreen() {
             },
           ]}
           activeOpacity={0.8}
-          onPress={() => setPlaying((p) => !p)}
+          onPress={toggleAudio}
         >
           <Feather
             name={playing ? 'pause-circle' : 'play-circle'}
