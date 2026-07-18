@@ -1,51 +1,56 @@
 /**
- * Font loader — reads TTF font files from disk once and caches them as
- * base64 strings for embedding inside SVG <style> @font-face rules.
- * librsvg (used by sharp) supports data-URI fonts in @font-face.
+ * Font installer — ensures Amiri Quran and Noto Nastaliq Urdu are registered
+ * with the system fontconfig so librsvg (used by sharp) can find them by name.
+ *
+ * Copies font files from assets/fonts/ → ~/.fonts/ once per process and
+ * rebuilds the fontconfig cache. librsvg resolves fonts via fontconfig, NOT
+ * via SVG @font-face data URIs (which it silently ignores).
  */
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
+const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FONTS_DIR = path.join(__dirname, "../assets/fonts");
+const ASSETS_FONTS = path.join(__dirname, "../assets/fonts");
+const USER_FONTS = path.join(os.homedir(), ".fonts");
 
-let cachedBlock: string | null = null;
+const FONTS = [
+  "AmiriQuran.ttf",
+  "NotoNastaliqUrdu-Regular.ttf",
+];
+
+let ensured = false;
 
 /**
- * Returns an SVG <style> block with @font-face declarations for:
- *  - "Amiri Quran"       — Uthmani Arabic Quran script
- *  - "Noto Nastaliq Urdu" — Nastaliq Urdu translation script
- *
- * The result is cached after the first call (lazy, once per process).
+ * Call once at server startup (or lazily before first render).
+ * Installs fonts into ~/.fonts and rebuilds fontconfig cache if needed.
  */
-export async function getFontStyleBlock(): Promise<string> {
-  if (cachedBlock !== null) return cachedBlock;
+export async function ensureFontsInstalled(): Promise<void> {
+  if (ensured) return;
+  ensured = true;
 
-  const [amiriB64, nastaliqB64] = await Promise.all([
-    fs
-      .readFile(path.join(FONTS_DIR, "AmiriQuran.ttf"))
-      .then((b) => b.toString("base64")),
-    fs
-      .readFile(path.join(FONTS_DIR, "NotoNastaliqUrdu-Regular.ttf"))
-      .then((b) => b.toString("base64")),
-  ]);
+  await fs.mkdir(USER_FONTS, { recursive: true });
 
-  cachedBlock = `
-  <style>
-    @font-face {
-      font-family: 'Amiri Quran';
-      src: url('data:font/truetype;base64,${amiriB64}') format('truetype');
-      font-weight: normal;
-      font-style: normal;
+  let anyNew = false;
+  for (const font of FONTS) {
+    const dest = path.join(USER_FONTS, font);
+    const alreadyExists = await fs.access(dest).then(() => true).catch(() => false);
+    if (!alreadyExists) {
+      await fs.copyFile(path.join(ASSETS_FONTS, font), dest);
+      anyNew = true;
     }
-    @font-face {
-      font-family: 'Noto Nastaliq Urdu';
-      src: url('data:font/truetype;base64,${nastaliqB64}') format('truetype');
-      font-weight: normal;
-      font-style: normal;
-    }
-  </style>`;
+  }
 
-  return cachedBlock;
+  if (anyNew) {
+    try {
+      await execFileAsync("fc-cache", ["-f", USER_FONTS]);
+    } catch {
+      // fc-cache failure is non-fatal — fonts may still be found if cache
+      // was built in a previous process (e.g. the shell that set up the env).
+    }
+  }
 }

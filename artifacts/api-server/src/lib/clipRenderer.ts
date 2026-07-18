@@ -7,7 +7,7 @@ import { pipeline } from "node:stream/promises";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import sharp from "sharp";
-import { getFontStyleBlock } from "./fontLoader.js";
+import { ensureFontsInstalled } from "./fontLoader.js";
 
 export interface ClipSegmentInput {
   reference: string;
@@ -121,7 +121,7 @@ function renderLines(options: {
     .join("");
 }
 
-async function renderClipSvg(params: {
+function renderClipSvg(params: {
   appName: string;
   sourceLabel: string;
   title: string;
@@ -132,7 +132,6 @@ async function renderClipSvg(params: {
   arabic: string;
   translation: string;
   translationLang?: string | null;
-  fontStyleBlock: string;
 }) {
   const isUrdu = params.translationLang === "ur";
   const arabicLines = wrapText(params.arabic, 20, 8);
@@ -152,7 +151,6 @@ async function renderClipSvg(params: {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    ${params.fontStyleBlock}
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0A1628"/>
       <stop offset="52%" stop-color="#173324"/>
@@ -408,13 +406,13 @@ export async function renderClip(input: ClipRenderInput): Promise<ClipRenderResu
   const audioFiles: string[] = [];
   const frameEntries: Array<{ filePath: string; duration?: number }> = [];
 
-  // Load fonts once for all frames (result is cached after first call)
-  const fontStyleBlock = await getFontStyleBlock();
+  // Ensure Amiri Quran + Noto Nastaliq Urdu are registered in fontconfig
+  await ensureFontsInstalled();
 
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index];
     const framePath = path.join(frameDir, `frame-${String(index + 1).padStart(2, "0")}.png`);
-    const svg = await renderClipSvg({
+    const svg = renderClipSvg({
       appName: input.appName,
       sourceLabel: input.sourceLabel,
       title: input.title,
@@ -425,7 +423,6 @@ export async function renderClip(input: ClipRenderInput): Promise<ClipRenderResu
       arabic: segment.arabic,
       translation: segment.translation,
       translationLang: segment.translationLang,
-      fontStyleBlock,
     });
 
     await renderSvgToPng(svg, framePath);
