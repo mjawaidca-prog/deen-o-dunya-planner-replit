@@ -731,12 +731,14 @@ export default function QuranSearchScreen() {
       />
 
       {/* ── Clip modal ── */}
-      <ClipModal
-        visible={clipItem !== null}
-        mode="quran"
-        quran={clipItem!}
-        onClose={() => setClipItem(null)}
-      />
+      {clipItem !== null && (
+        <ClipModal
+          visible
+          mode="quran"
+          quran={clipItem}
+          onClose={() => setClipItem(null)}
+        />
+      )}
 
       {/* ── Keywords browser modal ── */}
       <Modal
