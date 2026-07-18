@@ -12,7 +12,10 @@ export interface ClipSegmentInput {
   reference: string;
   arabic: string;
   translation: string;
+  /** Arabic recitation audio URL */
   audioUrl?: string | null;
+  /** Spoken translation audio URL — played after the Arabic recitation */
+  audioTranslationUrl?: string | null;
 }
 
 export interface ClipRenderInput {
@@ -402,10 +405,34 @@ export async function renderClip(input: ClipRenderInput): Promise<ClipRenderResu
 
     let duration = estimateDuration(segment);
     if (segment.audioUrl) {
-      const audioPath = path.join(audioDir, `audio-${String(index + 1).padStart(2, "0")}.mp3`);
-      await downloadFile(segment.audioUrl, audioPath);
-      audioFiles.push(audioPath);
-      duration = clamp(await probeDuration(audioPath), 4, 24);
+      const arabicPath = path.join(audioDir, `arabic-${String(index + 1).padStart(2, "0")}.mp3`);
+      await downloadFile(segment.audioUrl, arabicPath);
+
+      let segmentAudioPath = arabicPath;
+
+      if (segment.audioTranslationUrl) {
+        const translationPath = path.join(audioDir, `translation-${String(index + 1).padStart(2, "0")}.mp3`);
+        const combinedPath = path.join(audioDir, `combined-${String(index + 1).padStart(2, "0")}.mp3`);
+        try {
+          await downloadFile(segment.audioTranslationUrl, translationPath);
+          // Concat Arabic recitation + spoken translation sequentially
+          const listPath = path.join(audioDir, `list-${String(index + 1).padStart(2, "0")}.txt`);
+          await fs.writeFile(
+            listPath,
+            `file '${escapeConcatPath(arabicPath)}'\nfile '${escapeConcatPath(translationPath)}'`,
+            "utf8",
+          );
+          await runCommand(FFMPEG_PATH, [
+            "-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", combinedPath,
+          ]);
+          segmentAudioPath = combinedPath;
+        } catch {
+          // If translation audio fails, fall back to Arabic-only
+        }
+      }
+
+      audioFiles.push(segmentAudioPath);
+      duration = clamp(await probeDuration(segmentAudioPath), 4, 40);
     }
 
     frameEntries.push({ filePath: framePath, duration });

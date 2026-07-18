@@ -15,6 +15,11 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { ResizeMode, Video } from "expo-av";
 import { Qari, getAudioUrl } from "@/constants/qaris";
+import {
+  AUDIO_TRANSLATORS,
+  AudioTranslator,
+  getAudioTranslationUrl,
+} from "@/constants/audioTranslators";
 import { getAppOrigin } from "@/lib/runtime";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -98,8 +103,9 @@ export default function ClipModal(props: Props) {
   const [selectedQariId, setSelectedQariId] = useState(
     props.mode === "quran" ? props.quran.currentQariId : "",
   );
-  const [selectedTranslationId, setSelectedTranslationId] = useState<"en" | "ur" | "none">("en");
+  const [selectedAudioTranslatorId, setSelectedAudioTranslatorId] = useState<string>("none");
   const [showQariPicker, setShowQariPicker] = useState(false);
+  const [showAudioTranslatorPicker, setShowAudioTranslatorPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +113,7 @@ export default function ClipModal(props: Props) {
   useEffect(() => {
     if (!props.visible) {
       setShowQariPicker(false);
+      setShowAudioTranslatorPicker(false);
       setCreating(false);
       setError(null);
       setDownloadUrl("");
@@ -117,31 +124,17 @@ export default function ClipModal(props: Props) {
       setStartAyah(props.quran.defaultStartAyah);
       setEndAyah(props.quran.defaultEndAyah);
       setSelectedQariId(props.quran.currentQariId);
-      // Default to first available translation
-      const ayahs = props.quran.ayahs;
-      if (ayahs.some((a) => a.translationEn != null || a.translation)) {
-        setSelectedTranslationId("en");
-      } else if (ayahs.some((a) => a.translationUr != null)) {
-        setSelectedTranslationId("ur");
-      } else {
-        setSelectedTranslationId("none");
-      }
+      setSelectedAudioTranslatorId("none");
+      setShowAudioTranslatorPicker(false);
     }
   }, [props.visible, props.mode]);
 
-  const availableTranslations = useMemo<{ id: "en" | "ur" | "none"; label: string }[]>(() => {
-    if (props.mode !== "quran") return [];
-    const ayahs = props.quran.ayahs;
-    const opts: { id: "en" | "ur" | "none"; label: string }[] = [];
-    if (ayahs.some((a) => a.translationEn != null || a.translation)) {
-      opts.push({ id: "en", label: "English" });
-    }
-    if (ayahs.some((a) => a.translationUr != null)) {
-      opts.push({ id: "ur", label: "Urdu اردو" });
-    }
-    opts.push({ id: "none", label: "Arabic Only" });
-    return opts;
-  }, [props]);
+  const selectedAudioTranslator = useMemo<AudioTranslator>(
+    () =>
+      AUDIO_TRANSLATORS.find((t) => t.id === selectedAudioTranslatorId) ??
+      AUDIO_TRANSLATORS[0],
+    [selectedAudioTranslatorId],
+  );
 
   const ayahBounds = useMemo(() => {
     if (props.mode !== "quran" || props.quran.ayahs.length === 0) return { min: 1, max: 1 };
@@ -184,12 +177,20 @@ export default function ClipModal(props: Props) {
           ayah.numberInSurah >= range.start && ayah.numberInSurah <= range.end,
       )
       .map((ayah) => {
+        // Text shown on screen matches the audio translator's language
         let translation = "";
-        if (selectedTranslationId === "en") {
+        if (selectedAudioTranslator.language === "en") {
           translation = ayah.translationEn ?? ayah.translation ?? "";
-        } else if (selectedTranslationId === "ur") {
+        } else if (selectedAudioTranslator.language === "ur") {
           translation = ayah.translationUr ?? "";
         }
+        const audioTranslationUrl = selectedAudioTranslator.edition
+          ? getAudioTranslationUrl(
+              selectedAudioTranslator.edition,
+              props.quran.surahNumber,
+              ayah.numberInSurah,
+            )
+          : undefined;
         return {
           reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
           arabic: ayah.text,
@@ -201,9 +202,10 @@ export default function ClipModal(props: Props) {
                 ayah.numberInSurah,
               )
             : undefined,
+          audioTranslationUrl,
         };
       });
-  }, [props, quranRange, selectedQari, selectedTranslationId]);
+  }, [props, quranRange, selectedQari, selectedAudioTranslator]);
 
   const title =
     props.mode === "quran"
@@ -220,9 +222,9 @@ export default function ClipModal(props: Props) {
   const sourceLabel = props.mode === "quran" ? "Quran Clip" : "Hadith Clip";
   const translationLabel =
     props.mode === "quran"
-      ? selectedTranslationId === "ur"
+      ? selectedAudioTranslator.language === "ur"
         ? "Urdu"
-        : selectedTranslationId === "none"
+        : selectedAudioTranslator.language === "none"
         ? "Arabic Only"
         : "English"
       : props.hadith.translationLabel;
@@ -249,7 +251,9 @@ export default function ClipModal(props: Props) {
           subtitle: `${subtitle} - ${translationLabel}`,
           reciterLabel:
             props.mode === "quran" && selectedQari
-              ? selectedQari.name
+              ? selectedAudioTranslator.edition
+                ? `${selectedQari.name} + ${selectedAudioTranslator.name}`
+                : selectedQari.name
               : undefined,
           segments: selectedSegments,
         }),
@@ -413,27 +417,55 @@ export default function ClipModal(props: Props) {
                   )}
                 </View>
 
-                {availableTranslations.length > 1 && (
-                  <View style={styles.fieldBlock}>
-                    <Text style={styles.label}>Translation</Text>
-                    <View style={styles.pillRow}>
-                      {availableTranslations.map((opt) => {
-                        const active = selectedTranslationId === opt.id;
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.label}>Audio Translation</Text>
+                  <TouchableOpacity
+                    style={styles.pickerBtn}
+                    onPress={() => setShowAudioTranslatorPicker((v) => !v)}
+                  >
+                    <Text style={styles.pickerText} numberOfLines={1}>
+                      {selectedAudioTranslator.name}
+                    </Text>
+                    <Feather name="chevron-down" size={14} color="#0C5A3B" />
+                  </TouchableOpacity>
+                  {showAudioTranslatorPicker && (
+                    <View style={styles.dropdown}>
+                      {AUDIO_TRANSLATORS.map((translator) => {
+                        const active = translator.id === selectedAudioTranslatorId;
                         return (
                           <TouchableOpacity
-                            key={opt.id}
-                            onPress={() => setSelectedTranslationId(opt.id)}
-                            style={[styles.pill, active && styles.pillActive]}
+                            key={translator.id}
+                            onPress={() => {
+                              setSelectedAudioTranslatorId(translator.id);
+                              setShowAudioTranslatorPicker(false);
+                            }}
+                            style={[
+                              styles.dropdownItem,
+                              active && styles.dropdownItemActive,
+                            ]}
                           >
-                            <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                              {opt.label}
-                            </Text>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={[
+                                  styles.dropdownLabel,
+                                  active && styles.dropdownLabelActive,
+                                ]}
+                              >
+                                {translator.name}
+                              </Text>
+                              <Text style={styles.dropdownSub}>
+                                {translator.arabicName}
+                              </Text>
+                            </View>
+                            {active && (
+                              <Feather name="check" size={14} color="#0C5A3B" />
+                            )}
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                  </View>
-                )}
+                  )}
+                </View>
               </>
             )}
 
@@ -753,30 +785,5 @@ const styles = StyleSheet.create({
     color: "#0C5A3B",
     fontWeight: "700",
     fontSize: 14,
-  },
-  pillRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#C9A84C55",
-  },
-  pillActive: {
-    backgroundColor: "#0C5A3B",
-    borderColor: "#0C5A3B",
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#21302A",
-  },
-  pillTextActive: {
-    color: "#FFFFFF",
   },
 });
