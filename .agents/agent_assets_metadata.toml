@@ -12,3 +12,9 @@ id = "FZIEvFC1Hoi6kMzj6aXj3"
 uri = "file://screenshots/dua-journey-back-button.jpg"
 type = "image"
 title = "Dua Journey screen with prominent Back button"
+
+[[outputs]]
+id = "rdHYiasq_EgLR2Tm1QDAs"
+uri = "file://screenshots/dua-journey-mood-back-button.jpg"
+type = "image"
+title = "Dua Journey mood selector with Back button"
