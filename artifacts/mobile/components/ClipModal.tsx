@@ -22,7 +22,12 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 export interface QuranClipAyah {
   numberInSurah: number;
   text: string;
+  /** Generic translation (used as English fallback) */
   translation: string;
+  /** Explicit English translation — shown when user picks "English" */
+  translationEn?: string;
+  /** Explicit Urdu translation — shown when user picks "Urdu" */
+  translationUr?: string;
 }
 
 export interface HadithClipItem {
@@ -93,6 +98,7 @@ export default function ClipModal(props: Props) {
   const [selectedQariId, setSelectedQariId] = useState(
     props.mode === "quran" ? props.quran.currentQariId : "",
   );
+  const [selectedTranslationId, setSelectedTranslationId] = useState<"en" | "ur" | "none">("en");
   const [showQariPicker, setShowQariPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -111,8 +117,31 @@ export default function ClipModal(props: Props) {
       setStartAyah(props.quran.defaultStartAyah);
       setEndAyah(props.quran.defaultEndAyah);
       setSelectedQariId(props.quran.currentQariId);
+      // Default to first available translation
+      const ayahs = props.quran.ayahs;
+      if (ayahs.some((a) => a.translationEn != null || a.translation)) {
+        setSelectedTranslationId("en");
+      } else if (ayahs.some((a) => a.translationUr != null)) {
+        setSelectedTranslationId("ur");
+      } else {
+        setSelectedTranslationId("none");
+      }
     }
   }, [props.visible, props.mode]);
+
+  const availableTranslations = useMemo<{ id: "en" | "ur" | "none"; label: string }[]>(() => {
+    if (props.mode !== "quran") return [];
+    const ayahs = props.quran.ayahs;
+    const opts: { id: "en" | "ur" | "none"; label: string }[] = [];
+    if (ayahs.some((a) => a.translationEn != null || a.translation)) {
+      opts.push({ id: "en", label: "English" });
+    }
+    if (ayahs.some((a) => a.translationUr != null)) {
+      opts.push({ id: "ur", label: "Urdu اردو" });
+    }
+    opts.push({ id: "none", label: "Arabic Only" });
+    return opts;
+  }, [props]);
 
   const ayahBounds = useMemo(() => {
     if (props.mode !== "quran" || props.quran.ayahs.length === 0) return { min: 1, max: 1 };
@@ -154,19 +183,27 @@ export default function ClipModal(props: Props) {
         (ayah) =>
           ayah.numberInSurah >= range.start && ayah.numberInSurah <= range.end,
       )
-      .map((ayah) => ({
-        reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
-        arabic: ayah.text,
-        translation: ayah.translation,
-        audioUrl: selectedQari
-          ? getAudioUrl(
-              selectedQari.folder,
-              props.quran.surahNumber,
-              ayah.numberInSurah,
-            )
-          : undefined,
-      }));
-  }, [props, quranRange, selectedQari]);
+      .map((ayah) => {
+        let translation = "";
+        if (selectedTranslationId === "en") {
+          translation = ayah.translationEn ?? ayah.translation ?? "";
+        } else if (selectedTranslationId === "ur") {
+          translation = ayah.translationUr ?? "";
+        }
+        return {
+          reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
+          arabic: ayah.text,
+          translation,
+          audioUrl: selectedQari
+            ? getAudioUrl(
+                selectedQari.folder,
+                props.quran.surahNumber,
+                ayah.numberInSurah,
+              )
+            : undefined,
+        };
+      });
+  }, [props, quranRange, selectedQari, selectedTranslationId]);
 
   const title =
     props.mode === "quran"
@@ -183,7 +220,11 @@ export default function ClipModal(props: Props) {
   const sourceLabel = props.mode === "quran" ? "Quran Clip" : "Hadith Clip";
   const translationLabel =
     props.mode === "quran"
-      ? props.quran.translationLabel
+      ? selectedTranslationId === "ur"
+        ? "Urdu"
+        : selectedTranslationId === "none"
+        ? "Arabic Only"
+        : "English"
       : props.hadith.translationLabel;
 
   const handleGenerate = async () => {
@@ -371,6 +412,28 @@ export default function ClipModal(props: Props) {
                     </View>
                   )}
                 </View>
+
+                {availableTranslations.length > 1 && (
+                  <View style={styles.fieldBlock}>
+                    <Text style={styles.label}>Translation</Text>
+                    <View style={styles.pillRow}>
+                      {availableTranslations.map((opt) => {
+                        const active = selectedTranslationId === opt.id;
+                        return (
+                          <TouchableOpacity
+                            key={opt.id}
+                            onPress={() => setSelectedTranslationId(opt.id)}
+                            style={[styles.pill, active && styles.pillActive]}
+                          >
+                            <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                              {opt.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
               </>
             )}
 
@@ -690,5 +753,30 @@ const styles = StyleSheet.create({
     color: "#0C5A3B",
     fontWeight: "700",
     fontSize: 14,
+  },
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  pill: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#C9A84C55",
+  },
+  pillActive: {
+    backgroundColor: "#0C5A3B",
+    borderColor: "#0C5A3B",
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#21302A",
+  },
+  pillTextActive: {
+    color: "#FFFFFF",
   },
 });

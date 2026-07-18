@@ -294,17 +294,20 @@ export default function QuranSearchScreen() {
   // ── Clip ────────────────────────────────────────────────────────────────────
   const handleClip = useCallback(
     (item: EnrichedResult) => {
+      const isUrdu = lang.id === "ur";
+      const isEnglish = lang.id === "en";
+      const translationText = lang.id === "ar" ? "" : item.text;
       setClipItem({
         surahNumber: item.surah.number,
         surahName: item.surah.name,
         surahEnglishName: item.surah.englishName,
-        // Normalize numberInSurah to the actual ayah number so ClipModal range
-        // controls work correctly for a single-ayah result from search.
         ayahs: [
           {
             numberInSurah: item.numberInSurah,
             text: item.arabic || item.text,
-            translation: lang.id === "ar" ? "" : item.text,
+            translation: translationText,
+            translationEn: isEnglish ? item.text : undefined,
+            translationUr: isUrdu ? item.text : undefined,
           },
         ],
         defaultStartAyah: item.numberInSurah,

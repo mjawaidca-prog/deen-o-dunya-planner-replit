@@ -674,7 +674,15 @@ export default function QuranSurahScreen() {
           surahNumber: surahNum,
           surahName: surahInfo?.name ?? '',
           surahEnglishName: surahInfo?.nameEnglish ?? '',
-          ayahs,
+          ayahs: ayahs.map(a => {
+            const isUrdu = selectedTranslation.id.toLowerCase().includes('ur');
+            return {
+              ...a,
+              ...(isUrdu
+                ? { translationUr: a.translation }
+                : { translationEn: a.translation }),
+            };
+          }),
           defaultStartAyah: clipStartAyah,
           defaultEndAyah: clipEndAyah,
           translationLabel: selectedTranslation.name,
