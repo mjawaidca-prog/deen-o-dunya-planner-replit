@@ -208,7 +208,10 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const scheduleAdhanNotifications = async (calendar: { date: string; timings: PrayerTimes }[], enabled: boolean) => {
     if (!Notifications) return;
     try {
-      const permResult = await Notifications.getPermissionsAsync();
+      // Request permission if enabling; check-only if called with enabled=false (cancel path)
+      const permResult = enabled
+        ? await Notifications.requestPermissionsAsync()
+        : await Notifications.getPermissionsAsync();
       const isGranted = (permResult as unknown as { granted?: boolean; status?: string }).granted
         ?? (permResult as unknown as { status?: string }).status === 'granted';
       if (!isGranted) return;

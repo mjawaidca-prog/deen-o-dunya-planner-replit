@@ -20,6 +20,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/useColors";
 import { SURAHS } from "@/constants/quranData";
 import PosterModal, { PosterItem } from "@/components/PosterModal";
+import ClipModal, { QuranClipAyah } from "@/components/ClipModal";
+import { QARIS } from "@/constants/qaris";
 import { ISLAMIC_TERMS, IslamicTerm } from "@/constants/islamicTerms";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -120,6 +122,17 @@ export default function QuranSearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bookmarkedKeys, setBookmarkedKeys] = useState<Set<string>>(new Set());
   const [posterItem, setPosterItem] = useState<PosterItem | null>(null);
+  const [clipItem, setClipItem] = useState<{
+    surahNumber: number;
+    surahName: string;
+    surahEnglishName: string;
+    ayahs: QuranClipAyah[];
+    defaultStartAyah: number;
+    defaultEndAyah: number;
+    translationLabel: string;
+    qaris: typeof QARIS;
+    currentQariId: string;
+  } | null>(null);
   const [showKeywordsModal, setShowKeywordsModal] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -278,6 +291,32 @@ export default function QuranSearchScreen() {
     };
   }, []);
 
+  // ── Clip ────────────────────────────────────────────────────────────────────
+  const handleClip = useCallback(
+    (item: EnrichedResult) => {
+      setClipItem({
+        surahNumber: item.surah.number,
+        surahName: item.surah.name,
+        surahEnglishName: item.surah.englishName,
+        // Normalize numberInSurah to the actual ayah number so ClipModal range
+        // controls work correctly for a single-ayah result from search.
+        ayahs: [
+          {
+            numberInSurah: item.numberInSurah,
+            text: item.arabic || item.text,
+            translation: lang.id === "ar" ? "" : item.text,
+          },
+        ],
+        defaultStartAyah: item.numberInSurah,
+        defaultEndAyah: item.numberInSurah,
+        translationLabel: lang.label,
+        qaris: QARIS,
+        currentQariId: QARIS[0].id,
+      });
+    },
+    [lang],
+  );
+
   // ── Share / Poster ──────────────────────────────────────────────────────────
   const handleShare = useCallback(
     async (item: EnrichedResult) => {
@@ -390,6 +429,16 @@ export default function QuranSearchScreen() {
                 />
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={() => handleClip(item)}
+                style={styles.actionBtn}
+              >
+                <Feather
+                  name="video"
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[styles.openBtn, { backgroundColor: colors.primary }]}
                 onPress={() =>
                   router.push(`/quran/${item.surah.number}` as any)
@@ -452,6 +501,7 @@ export default function QuranSearchScreen() {
       handleBookmark,
       handleShare,
       handlePoster,
+      handleClip,
     ],
   );
 
@@ -678,6 +728,14 @@ export default function QuranSearchScreen() {
         visible={posterItem !== null}
         item={posterItem}
         onClose={() => setPosterItem(null)}
+      />
+
+      {/* ── Clip modal ── */}
+      <ClipModal
+        visible={clipItem !== null}
+        mode="quran"
+        quran={clipItem!}
+        onClose={() => setClipItem(null)}
       />
 
       {/* ── Keywords browser modal ── */}

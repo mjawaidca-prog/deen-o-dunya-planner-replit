@@ -114,10 +114,16 @@ export default function ClipModal(props: Props) {
     }
   }, [props.visible, props.mode]);
 
+  const ayahBounds = useMemo(() => {
+    if (props.mode !== "quran" || props.quran.ayahs.length === 0) return { min: 1, max: 1 };
+    const nums = props.quran.ayahs.map((a) => a.numberInSurah);
+    return { min: Math.min(...nums), max: Math.max(...nums) };
+  }, [props.mode, props.mode === "quran" ? props.quran.ayahs : undefined]);
+
   const quranRange = useMemo(() => {
     if (props.mode !== "quran") return { start: 1, end: 1 };
-    return normalizeRange(startAyah, endAyah, props.quran.ayahs.length);
-  }, [props.mode, startAyah, endAyah, props]);
+    return normalizeRange(startAyah, endAyah, ayahBounds.max);
+  }, [props.mode, startAyah, endAyah, ayahBounds]);
 
   const selectedQari = useMemo(() => {
     if (props.mode !== "quran") return null;
@@ -294,7 +300,7 @@ export default function ClipModal(props: Props) {
 
                 <View style={styles.rangeHintRow}>
                   <TouchableOpacity
-                    onPress={() => setStartAyah((value) => Math.max(1, value - 1))}
+                    onPress={() => setStartAyah((value) => Math.max(ayahBounds.min, value - 1))}
                     style={styles.stepBtn}
                   >
                     <Feather name="minus" size={14} color="#0C5A3B" />
@@ -307,7 +313,7 @@ export default function ClipModal(props: Props) {
                   <TouchableOpacity
                     onPress={() =>
                       setEndAyah((value) =>
-                        Math.min(props.quran.ayahs.length, value + 1),
+                        Math.min(ayahBounds.max, value + 1),
                       )
                     }
                     style={styles.stepBtn}
