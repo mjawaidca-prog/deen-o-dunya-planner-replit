@@ -7,6 +7,6 @@ export { default as QaidaItemCell }      from './components/QaidaItem';
 export { default as AudioPlayer }        from './components/AudioPlayer';
 export { default as TajweedBadge }       from './components/TajweedBadge';
 export { useAudioPlayer }                from './hooks/useAudioPlayer';
-export { qaidaLessons, getAudioPath }    from './data/qaidaData';
+export { qaidaLessons }                  from './data/qaidaData';
 export { TAJWEED_COLORS, TAJWEED_LABELS }from './constants/tajweedColors';
 export * from './types/tajweed.types';

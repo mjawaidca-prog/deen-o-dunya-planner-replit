@@ -14,7 +14,7 @@ import QaidaGrid from '../components/QaidaGrid';
 import AudioPlayer from '../components/AudioPlayer';
 import TajweedBadge from '../components/TajweedBadge';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { qaidaLessons, getAudioPath } from '../data/qaidaData';
+import { qaidaLessons } from '../data/qaidaData';
 import { QaidaItem, QaidaLesson } from '../types/tajweed.types';
 
 interface LessonDetailScreenProps {
@@ -39,8 +39,7 @@ const LessonDetailScreen = ({ lessonId, onBack }: LessonDetailScreenProps) => {
   const handleItemPress = useCallback(
     (item: QaidaItem) => {
       setSelectedItem(item);
-      const source = getAudioPath(item.audioFileName);
-      audio.playAudio(item.id, source);
+      audio.playAudio(item.id, item.text);
     },
     [audio],
   );
