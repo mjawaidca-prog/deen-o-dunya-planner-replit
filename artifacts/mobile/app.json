@@ -56,7 +56,12 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/adhan.mp3"]
+          "android": {
+            "sounds": ["./assets/sounds/adhan.mp3"]
+          },
+          "ios": {
+            "sounds": ["./assets/sounds/adhan.mp3"]
+          }
         }
       ],
       [
