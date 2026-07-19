@@ -381,12 +381,12 @@ export default function HadithBookScreen() {
                 {item.arabic}
               </Text>
 
-              {/* English */}
+              {/* Translation (Urdu when language is ur, otherwise English) */}
               <Text
                 style={[styles.engText, { color: colors.mutedForeground }]}
                 numberOfLines={3}
               >
-                {item.english}
+                {language === 'ur' ? (item.urdu || item.english) : item.english}
               </Text>
 
               {/* Narrator */}

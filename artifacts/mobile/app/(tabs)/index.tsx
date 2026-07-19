@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { usePrayer } from '@/context/PrayerContext';
 import { useApp, DailyPrayers } from '@/context/AppContext';
 import PrayerCountdown from '@/components/PrayerCountdown';
+import DailyAyahCard from '@/components/DailyAyahCard';
 import { LOCAL_HADITHS } from '@/constants/hadithBooks';
 import { Language } from '@/constants/translations';
 
@@ -151,11 +152,17 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Daily Ayah */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Daily Ayah</Text>
+        <DailyAyahCard />
+
         {/* Hadith of Day */}
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('hadithOfDay')}</Text>
         <View style={[styles.hadithCard, { backgroundColor: colors.card, borderLeftColor: colors.gold }]}>
           <Text style={[styles.hadithArabic, { color: colors.foreground }]}>{hadithOfDay.arabic}</Text>
-          <Text style={[styles.hadithEnglish, { color: colors.mutedForeground }]}>{hadithOfDay.english}</Text>
+          <Text style={[styles.hadithEnglish, { color: colors.mutedForeground }]}>
+            {language === 'ur' ? (hadithOfDay.urdu || hadithOfDay.english) : hadithOfDay.english}
+          </Text>
           <View style={styles.hadithFooter}>
             <Text style={[styles.hadithNarrator, { color: colors.gold }]}>{hadithOfDay.narrator}</Text>
             <Text style={[styles.hadithGrade, { color: hadithOfDay.grade === 'sahih' ? colors.emerald : colors.gold }]}>
