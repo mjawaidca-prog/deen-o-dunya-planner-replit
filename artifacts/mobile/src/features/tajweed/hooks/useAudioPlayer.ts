@@ -2,6 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import * as Speech from 'expo-speech';
 import { AudioState } from '../types/tajweed.types';
 
+/** Never throws — safe to call whether or not the TTS engine is ready. */
+function safeStop(): void {
+  try { Speech.stop(); } catch {}
+}
+
 export const useAudioPlayer = () => {
   const [state, setState] = useState<AudioState>({
     isPlaying: false,
@@ -12,14 +17,12 @@ export const useAudioPlayer = () => {
 
   // Stop speech when the screen unmounts
   useEffect(() => {
-    return () => {
-      Speech.stop();
-    };
+    return () => { safeStop(); };
   }, []);
 
   const playAudio = useCallback(async (itemId: string, arabicText: string) => {
-    // Stop anything already speaking
-    await Speech.stop();
+    // Stop anything already speaking — safe even if TTS isn't initialised yet
+    safeStop();
 
     setState({ isPlaying: false, currentItemId: itemId, isLoading: true, error: null });
 
@@ -56,8 +59,9 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  const stopAudio = useCallback(async () => {
-    await Speech.stop();
+  // Synchronous — Speech.stop() returns void; no async needed and no unhandled rejection risk.
+  const stopAudio = useCallback(() => {
+    safeStop();
     setState({ isPlaying: false, currentItemId: null, isLoading: false, error: null });
   }, []);
 

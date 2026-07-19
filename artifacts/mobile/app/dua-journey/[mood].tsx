@@ -27,12 +27,12 @@ export default function DuaJourneyScreen() {
   );
 
   // Stop speech when the user leaves this screen
-  useEffect(() => () => { Speech.stop(); }, []);
+  useEffect(() => () => { try { Speech.stop(); } catch {} }, []);
 
   const toggleAudio = async () => {
     if (!entry) return;
     if (playing) {
-      await Speech.stop();
+      try { Speech.stop(); } catch {}
       setPlaying(false);
       return;
     }
