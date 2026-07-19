@@ -16,6 +16,7 @@ const FEATURES = [
   { icon: '🤲', label: 'duas', route: '/duas', color: '#D97706', desc: 'Daily supplications' },
   { icon: '✨', label: 'namesOfAllah', route: '/names', color: '#9333EA', desc: 'Asmaul Husna' },
   { icon: '🫀', label: 'Dua Journey', route: '/dua-journey', color: '#E11D48', desc: 'Mood-based supplications' },
+  { icon: '🔤', label: 'Learn Tajweed', route: '/tajweed', color: '#0E7490', desc: 'Noorani Qaida – 17 lessons' },
 ];
 
 const SPECIAL_FEATURES = [

@@ -63,6 +63,10 @@ function RootLayoutNav() {
       {/* Emotion-Based Dua Journeys */}
       <Stack.Screen name="dua-journey/index" options={{ headerShown: false }} />
       <Stack.Screen name="dua-journey/[mood]" options={{ headerShown: false }} />
+
+      {/* Learn Tajweed — Noorani Qaida */}
+      <Stack.Screen name="tajweed/index" options={{ headerShown: false }} />
+      <Stack.Screen name="tajweed/[lessonId]" options={{ headerShown: false }} />
     </Stack>
   );
 }

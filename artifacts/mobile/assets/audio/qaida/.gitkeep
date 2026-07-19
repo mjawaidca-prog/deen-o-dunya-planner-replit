@@ -1,0 +1,3 @@
+# Placeholder directory for Noorani Qaida audio files
+# Drop real MP3s here and update getAudioPath() in:
+# src/features/tajweed/data/qaidaData.ts

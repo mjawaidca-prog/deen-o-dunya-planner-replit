@@ -37,6 +37,7 @@ const QUICK_TILES = [
   { icon: '🌙', label: 'Prayer Times', route: '/prayer' },
   { icon: '🖼️', label: 'Image Maker', route: '/quran/search' },
   { icon: '🎬', label: 'Clip Maker', route: '/quran/search' },
+  { icon: '🔤', label: 'Tajweed', route: '/tajweed' },
 ];
 
 function todayKey() {

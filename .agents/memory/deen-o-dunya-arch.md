@@ -105,6 +105,15 @@ Prominent green banner "Search Quran Verses" navigates to `/quran/search`. Separ
 ## Quran Search — PosterModal
 `app/quran/search.tsx` now has a camera icon (Feather "image") next to share in each result card. Tapping opens `PosterModal` with the ayah's Arabic + translation. `lang.id` determines whether translation goes in `en` or `ur` field of PosterItem.
 
+## Learn Tajweed — Noorani Qaida Feature
+- Module at `src/features/tajweed/` (types, constants, data, hooks, components, screens, index.ts)
+- 17 lessons fully populated in `data/qaidaData.ts` (~68 KB) — do not truncate items arrays
+- Audio is placeholder: `getAudioPath()` returns null; real MP3s go in `assets/audio/qaida/`
+- `useAudioPlayer` uses `expo-av` Audio.Sound — matches existing expo-av usage in project
+- Colors use `useColors()` tokens only — all token names verified against `constants/colors.ts`
+- Routes: `app/tajweed/index.tsx` + `app/tajweed/[lessonId].tsx` registered in `_layout.tsx`
+- Entry points: `(tabs)/index.tsx` QUICK_TILES + `(tabs)/more.tsx` FEATURES
+
 ## Hadith — topic filter + Albani grading
 `app/hadith/[book].tsx` now has:
 - Horizontal `ScrollView` topic chip row (HADITH_TOPICS, 14 topics)
