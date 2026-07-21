@@ -2,7 +2,6 @@ import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useLanguage } from '@/context/LanguageContext';
@@ -34,12 +33,20 @@ function ClassicTabLayout() {
           height: isWeb ? 84 : 64,
           paddingBottom: isWeb ? 16 : 8,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]} />
-          ),
+        tabBarBackground: () => (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                backgroundColor: isIOS
+                  ? isDark
+                    ? 'rgba(18,18,18,0.88)'
+                    : 'rgba(255,255,255,0.88)'
+                  : colors.surface,
+              },
+            ]}
+          />
+        ),
         tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       }}
     >
