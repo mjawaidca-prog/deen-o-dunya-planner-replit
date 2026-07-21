@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Share,
   StyleSheet,
   Text,
@@ -10,7 +11,17 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
+
+// expo-speech native module can crash on load in some Expo Go environments.
+// Use a lazy try-catch require so a missing/broken native module never
+// hard-crashes the whole app — TTS is silently skipped instead.
+type SpeechModule = typeof import('expo-speech');
+let Speech: SpeechModule | null = null;
+try {
+  Speech = require('expo-speech') as SpeechModule;
+} catch {
+  // Not available in this environment
+}
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { useDailyAyah } from '@/hooks/useDailyAyah';
@@ -125,7 +136,7 @@ export default function DailyAyahCard() {
     } catch {
       // Fallback: TTS
       try {
-        Speech.speak(ayah?.arabic ?? '', { language: 'ar', rate: 0.75 });
+        Speech?.speak(ayah?.arabic ?? '', { language: 'ar', rate: 0.75 });
         markListened(dayNumber);
       } catch {}
     } finally {
@@ -152,23 +163,29 @@ export default function DailyAyahCard() {
 
   // ── Reset ───────────────────────────────────────────────────────────────────
   const handleReset = useCallback(() => {
-    Alert.prompt(
-      'Go to Day',
-      `Enter a day number (1 – ${totalDays})`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Go',
-          onPress: (value) => {
-            const num = parseInt(value ?? '', 10);
-            if (!isNaN(num)) setDayNumber(num);
+    if (Platform.OS === 'ios') {
+      // Alert.prompt is iOS-only
+      Alert.prompt(
+        'Go to Day',
+        `Enter a day number (1 – ${totalDays})`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Go',
+            onPress: (value) => {
+              const num = parseInt(value ?? '', 10);
+              if (!isNaN(num)) setDayNumber(num);
+            },
           },
-        },
-      ],
-      'plain-text',
-      String(dayNumber),
-      'number-pad',
-    );
+        ],
+        'plain-text',
+        String(dayNumber),
+        'number-pad',
+      );
+    } else {
+      // Android fallback — just reset to the current calendar day
+      setDayNumber(dayNumber);
+    }
   }, [dayNumber, totalDays, setDayNumber]);
 
   // ── Render ──────────────────────────────────────────────────────────────────

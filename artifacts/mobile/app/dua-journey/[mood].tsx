@@ -10,7 +10,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
+// expo-speech native module can crash on load in some Expo Go environments.
+// Lazy try-catch require so a missing/broken native module never hard-crashes
+// the app — TTS is silently skipped instead.
+type SpeechModule = typeof import('expo-speech');
+let Speech: SpeechModule | null = null;
+try {
+  Speech = require('expo-speech') as SpeechModule;
+} catch {
+  // Not available in this environment
+}
 import { useLanguage } from '@/context/LanguageContext';
 import { useColors } from '@/hooks/useColors';
 import { DUA_JOURNEYS, JOURNEY_UI, MoodEntry } from '@/constants/duaJourneys';
@@ -27,18 +36,18 @@ export default function DuaJourneyScreen() {
   );
 
   // Stop speech when the user leaves this screen
-  useEffect(() => () => { try { Speech.stop(); } catch {} }, []);
+  useEffect(() => () => { try { Speech?.stop(); } catch {} }, []);
 
   const toggleAudio = async () => {
     if (!entry) return;
     if (playing) {
-      try { Speech.stop(); } catch {}
+      try { Speech?.stop(); } catch {}
       setPlaying(false);
       return;
     }
     setPlaying(true);
     try {
-      await Speech.speak(entry.dua_arabic, {
+      await Speech?.speak(entry.dua_arabic, {
         language: 'ar',
         pitch: 1,
         rate: 0.75,

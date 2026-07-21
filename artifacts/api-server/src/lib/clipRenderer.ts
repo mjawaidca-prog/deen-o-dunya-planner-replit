@@ -1,4 +1,4 @@
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync, statSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -7,7 +7,7 @@ import { pipeline } from "node:stream/promises";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import sharp from "sharp";
-import ffmpegPath from "ffmpeg-static";
+import ffmpegStaticPath from "ffmpeg-static";
 import ffprobeStatic from "ffprobe-static";
 import { ensureFontsInstalled } from "./fontLoader.js";
 
@@ -49,8 +49,25 @@ const HEIGHT = 1920;
 const ROOT_DIR = path.join(os.tmpdir(), "deen-o-dunya-clips");
 const MAX_RENDER_SEGMENTS = 12;
 
-const FFMPEG_PATH = ffmpegPath ?? "ffmpeg";
-const FFPROBE_PATH = ffprobeStatic.path ?? "ffprobe";
+// ffmpeg-static/ffprobe-static post-install scripts are often blocked in
+// pnpm environments (build scripts require explicit approval).  The package
+// still returns a path string, and that path may even exist as a stub/
+// placeholder file — so existsSync alone is not enough.  A real ffmpeg binary
+// is many MB; a stub or wrong-arch placeholder is tiny (often 0–few KB).
+// We require at least 1 MB to trust the static path; otherwise fall back to
+// the system binaries on the Replit PATH (ffmpeg 6.1.2 at runtime).
+function isFunctionalBinary(p: string | null | undefined): p is string {
+  if (!p) return false;
+  try {
+    const stat = statSync(p);
+    return stat.isFile() && stat.size > 1024 * 1024; // > 1 MB
+  } catch {
+    return false;
+  }
+}
+
+const FFMPEG_PATH = isFunctionalBinary(ffmpegStaticPath) ? ffmpegStaticPath : "ffmpeg";
+const FFPROBE_PATH = isFunctionalBinary(ffprobeStatic.path) ? ffprobeStatic.path : "ffprobe";
 
 function escapeXml(value: string) {
   return value
