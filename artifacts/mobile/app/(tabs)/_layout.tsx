@@ -3,12 +3,14 @@ import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useLanguage } from '@/context/LanguageContext';
 
 // NativeTabs (expo-router/unstable-native-tabs) renders screen content in a
 // native host outside the React provider tree, breaking all contexts. Always
 // use ClassicTabLayout (stable expo-router Tabs) which inherits providers correctly.
+
+// expo-symbols (SymbolView) and expo-blur (BlurView) are not available in Expo Go —
+// use Feather icons and a semi-transparent View instead, which work everywhere.
 
 function ClassicTabLayout() {
   const colors = useColors();
@@ -54,40 +56,35 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: t('home'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="house.fill" tintColor={color} size={22} /> : <Feather name="home" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="quran"
         options={{
           title: t('quran'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="book.fill" tintColor={color} size={22} /> : <Feather name="book-open" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="book-open" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: t('library'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="books.vertical.fill" tintColor={color} size={22} /> : <Feather name="archive" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="archive" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="planner"
         options={{
           title: t('planner'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="calendar" tintColor={color} size={22} /> : <Feather name="check-square" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="check-square" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: t('more'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? <SymbolView name="ellipsis" tintColor={color} size={22} /> : <Feather name="grid" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="grid" size={22} color={color} />,
         }}
       />
     </Tabs>
