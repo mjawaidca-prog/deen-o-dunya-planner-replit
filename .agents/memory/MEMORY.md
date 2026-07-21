@@ -1,1 +1,3 @@
 - [Deen o Dunya app architecture](deen-o-dunya-arch.md) — Islamic planner Expo app: screens, providers, data sources, known caveats
+- [expo-notifications assert shim](expo-notifications-assert-shim.md) — expo-notifications@0.32.17 (SDK 54) pulls in @ide/backoff which uses Node assert; fix via metro.config.js extraNodeModules shim
+- [expo-speech lazy require](expo-speech-lazy-require.md) — expo-speech must be lazy-required (try-catch) not statically imported; static import crashes Expo Go on iOS/Android at startup
