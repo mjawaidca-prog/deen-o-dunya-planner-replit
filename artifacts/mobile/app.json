@@ -7,6 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
+    "extra": {
+      "eas": {
+        "projectId": "07314f4d-5bc4-4bff-a00d-42ec6a54a8f7"
+      }
+    },
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
