@@ -74,7 +74,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Deen o Dunya to access your location for prayer times and nearby masjids."
         }
-      ]
+      ],
+      "./scripts/removeActivityRecognitionPermission"
     ],
     "experiments": {
       "typedRoutes": true,
