@@ -403,51 +403,37 @@ export default function QuranSearchScreen() {
             <View style={styles.cardActions}>
               <TouchableOpacity
                 onPress={() => handleBookmark(item)}
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt }]}
               >
                 <Feather
-                  name={isBookmarked ? "bookmark" : "bookmark"}
-                  size={16}
+                  name="bookmark"
+                  size={15}
                   color={isBookmarked ? colors.gold : colors.mutedForeground}
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleShare(item)}
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: colors.surfaceAlt }]}
               >
-                <Feather
-                  name="share-2"
-                  size={16}
-                  color={colors.mutedForeground}
-                />
+                <Feather name="share-2" size={15} color={colors.mutedForeground} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handlePoster(item)}
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: colors.primary + '20' }]}
               >
-                <Feather
-                  name="image"
-                  size={16}
-                  color={colors.mutedForeground}
-                />
+                <Feather name="image" size={15} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleClip(item)}
-                style={styles.actionBtn}
+                style={[styles.actionBtn, { backgroundColor: colors.gold + '25' }]}
               >
-                <Feather
-                  name="video"
-                  size={16}
-                  color={colors.mutedForeground}
-                />
+                <Feather name="video" size={15} color={colors.gold} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.openBtn, { backgroundColor: colors.primary }]}
-                onPress={() =>
-                  router.push(`/quran/${item.surah.number}` as any)
-                }
+                onPress={() => router.push(`/quran/${item.surah.number}` as any)}
               >
-                <Feather name="book-open" size={13} color="#fff" />
+                <Feather name="book-open" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -946,16 +932,16 @@ const styles = StyleSheet.create({
   surahArabicSmall: { fontSize: 14, fontWeight: "700", flex: 1 },
   cardActions: { flexDirection: "row", gap: 6, alignItems: "center" },
   actionBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },
   openBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },
