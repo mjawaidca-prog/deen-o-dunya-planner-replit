@@ -1,6 +1,6 @@
 # Deen o Dunya Planner — Release Notes
 
-## Version 1.3.1
+## Version 1.3.2
 
 ### Play Store Release Notes (500 characters max)
 
