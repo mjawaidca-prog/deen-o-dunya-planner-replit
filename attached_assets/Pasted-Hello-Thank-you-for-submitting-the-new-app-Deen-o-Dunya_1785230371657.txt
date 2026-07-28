@@ -1,0 +1,49 @@
+Hello, 
+
+Thank you for submitting the new app, Deen o Dunya Planner, for review. We noticed some issues that require your attention. Please see below for additional information.
+
+If you have any questions, we are here to help. Reply to this message in App Store Connect and let us know.
+
+Review Environment
+Submission ID: 1e5f2fb3-ff4a-4e89-bcc3-bcbde0f972f5
+Review date: July 24, 2026
+Review Device: iPhone 17 Pro Max and iPad Air 11-inch (M3) 
+Version reviewed: 1.0 (12)
+
+Guideline 1.5 - Safety
+Issue Description
+
+The Support URL provided in App Store Connect, https://replit.com/@mjawaidca/Deen-o-Dunya-Planner, is currently not functional and/or displays an error. 
+
+Next Steps
+
+Update the specified Support URL to direct users to a functional webpage with support information.
+
+Resources
+
+- Learn about Support URLs and other platform version information on App Store Connect Help.
+- Learn more about developer information requirements in guideline 1.5.
+Guideline 5.1.1(ii) - Legal - Privacy - Data Collection and Storage
+Issue Description
+
+One or more purpose strings, also called usage description strings, in the app do not sufficiently explain the use of protected resources. Purpose strings must clearly and completely describe the app's use of data and, in most cases, provide an example of how the data will be used.
+
+Next Steps
+
+Update the photo library purpose string to explain how the app will use the requested information and provide a specific example of how the data will be used. See the attached screenshot.
+
+Resources
+
+Purpose strings must clearly describe how an app uses the ability, data, or resource. The following are hypothetical examples of unclear purpose strings that would not pass review: 
+
+- "App would like to access your Contacts"
+- "App needs microphone access"
+
+See examples of helpful, informative purpose strings.
+Support
+- Reply to this message in your preferred language if you need assistance. If you need additional support, use the Contact Us module.
+- Consult with fellow developers and Apple engineers on the Apple Developer Forums.
+- Provide feedback on this message and your review experience by completing a short survey.
+
+Test on the latest betas
+Betas of iOS 27, iPadOS 27, macOS 27, tvOS 27 and visionOS 27 are now available. Download the latest betas to prepare your app for upcoming software releases. Learn more about installing and using Apple beta software.
