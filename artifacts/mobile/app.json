@@ -21,7 +21,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deenodunya.planner",
-      "buildNumber": "2",
+      "buildNumber": "13",
       "infoPlist": {
         "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
         "NSLocationWhenInUseUsageDescription": "Your location is used to calculate accurate prayer times and find nearby mosques.",
@@ -58,6 +58,12 @@
       ],
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Deen o Dunya uses your photos when you choose an image from your photo library to create a Quran poster or personalized Islamic content to save and share."
+        }
+      ],
       [
         "expo-notifications",
         {
