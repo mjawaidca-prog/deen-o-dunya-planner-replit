@@ -2,7 +2,7 @@
   "expo": {
     "name": "Deen o Dunya Planner",
     "slug": "mobile",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -30,7 +30,10 @@
     },
     "android": {
       "package": "com.deenodunya.planner",
-      "versionCode": 7,
+      "versionCode": 8,
+      "blockedPermissions": [
+        "android.permission.ACTIVITY_RECOGNITION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0A1628"
