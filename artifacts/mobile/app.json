@@ -2,7 +2,7 @@
   "expo": {
     "name": "Deen o Dunya Planner",
     "slug": "mobile",
-    "version": "1.3.4",
+    "version": "1.3.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -30,7 +30,7 @@
     },
     "android": {
       "package": "com.deenodunya.planner",
-      "versionCode": 8,
+      "versionCode": 9,
       "blockedPermissions": [
         "android.permission.ACTIVITY_RECOGNITION"
       ],
