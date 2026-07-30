@@ -21,3 +21,4 @@ timeoutMs = 20000
 
 [nix]
 packages = ["graalvm8-ce"]
+channel = "stable-25_05"
