@@ -2,3 +2,4 @@
 - [expo-notifications assert shim](expo-notifications-assert-shim.md) — expo-notifications@0.32.17 (SDK 54) pulls in @ide/backoff which uses Node assert; fix via metro.config.js extraNodeModules shim
 - [expo-speech lazy require](expo-speech-lazy-require.md) — expo-speech must be lazy-required (try-catch) not statically imported; static import crashes Expo Go on iOS/Android at startup
 - [Expo Go incompatible native modules](expo-go-incompatible-modules.md) — expo-blur (BlurView) and expo-symbols (SymbolView) crash Expo Go; replace with View + Feather icons
+- [Clip Maker production API](clip-production-api.md) — release builds need the published API origin, and deployments need explicit ffmpeg/ffprobe resolution
