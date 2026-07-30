@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, statSync } from "node:fs";
+import { createWriteStream, existsSync, readdirSync, statSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -66,8 +66,39 @@ function isFunctionalBinary(p: string | null | undefined): p is string {
   }
 }
 
-const FFMPEG_PATH = isFunctionalBinary(ffmpegStaticPath) ? ffmpegStaticPath : "ffmpeg";
-const FFPROBE_PATH = isFunctionalBinary(ffprobeStatic.path) ? ffprobeStatic.path : "ffprobe";
+function findSystemBinary(name: string) {
+  const pathEntries = (process.env.PATH || "").split(path.delimiter).filter(Boolean);
+  for (const entry of pathEntries) {
+    const candidate = path.join(entry, name);
+    if (isFunctionalBinary(candidate)) return candidate;
+  }
+
+  // Replit's runtime binaries are available in deployments but may not be
+  // included in the production process PATH. Resolve the runtime-path store
+  // entry dynamically because Nix store hashes vary between environments.
+  try {
+    const storeEntries = readdirSync("/nix/store");
+    const runtimeEntries = storeEntries
+      .filter((entry) => entry.endsWith("-replit-runtime-path"))
+      .sort();
+    for (const entry of runtimeEntries) {
+      const candidate = path.join("/nix/store", entry, "bin", name);
+      if (isFunctionalBinary(candidate)) return candidate;
+    }
+  } catch {
+    // The Nix store is not present in every local or hosted environment.
+  }
+
+  return name;
+}
+
+function resolveBinary(staticPath: string | null | undefined, name: string) {
+  if (isFunctionalBinary(staticPath)) return staticPath;
+  return findSystemBinary(name);
+}
+
+const FFMPEG_PATH = resolveBinary(ffmpegStaticPath, "ffmpeg");
+const FFPROBE_PATH = resolveBinary(ffprobeStatic.path, "ffprobe");
 
 function escapeXml(value: string) {
   return value

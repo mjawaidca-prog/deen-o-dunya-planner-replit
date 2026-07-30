@@ -10,7 +10,8 @@
     "extra": {
       "eas": {
         "projectId": "07314f4d-5bc4-4bff-a00d-42ec6a54a8f7"
-      }
+      },
+      "apiOrigin": "https://deen-o-dunya-planner.replit.app"
     },
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +22,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deenodunya.planner",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "infoPlist": {
         "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
         "NSLocationWhenInUseUsageDescription": "Your location is used to calculate accurate prayer times and find nearby mosques.",
