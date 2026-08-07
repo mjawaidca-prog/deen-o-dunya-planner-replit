@@ -172,7 +172,7 @@ export default function DailyAyahCard() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Go',
-            onPress: (value) => {
+            onPress: (value?: string) => {
               const num = parseInt(value ?? '', 10);
               if (!isNaN(num)) setDayNumber(num);
             },

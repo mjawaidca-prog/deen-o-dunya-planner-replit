@@ -2,25 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePrayer } from '@/context/PrayerContext';
 
-// Magnetometer is native-only and unavailable in Expo Go — guard with try-catch
-type MagnetometerType = typeof import('expo-sensors').Magnetometer;
-let Magnetometer: MagnetometerType | null = null;
-try {
-  if (Platform.OS !== 'web') {
-    Magnetometer = (require('expo-sensors') as typeof import('expo-sensors')).Magnetometer;
-  }
-} catch {
-  // Not available in this environment
-}
-
 const MECCA_LAT = 21.4225;
 const MECCA_LON = 39.8262;
-const ALIGNMENT_THRESHOLD = 4; // Degrees of margin to count as "perfectly aligned"
+const ALIGNMENT_THRESHOLD = 4; // degrees
 
+// ─── Great-circle bearing from user → Mecca ───────────────────────────────
 function getQiblaAngle(lat: number, lon: number): number {
   const mLat = MECCA_LAT * (Math.PI / 180);
   const mLon = MECCA_LON * (Math.PI / 180);
@@ -41,73 +32,94 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): 
 }
 
 function getCardinalLabel(angle: number): string {
-  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-  const index = Math.round(angle / 22.5) % 16;
-  return directions[index];
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.round(angle / 22.5) % 16];
 }
 
 export default function QiblaScreen() {
   const colors = useColors();
   const { t } = useLanguage();
   const { location, requestLocation } = usePrayer();
+
+  // Device heading in degrees (0 = North, clockwise)
   const [heading, setHeading] = useState(0);
+  const [headingAvailable, setHeadingAvailable] = useState<boolean | null>(null);
   const [isAligned, setIsAligned] = useState(false);
 
   const rotateVal = useRef(new Animated.Value(0)).current;
-  const lastAngle = useRef(0); // Tracks cumulative rotation to prevent 360° spin jitter
-  const subRef = useRef<{ remove: () => void } | null>(null);
+  const lastAngle = useRef(0);
+  // Store the subscription so we can remove it on unmount
+  const subRef = useRef<Location.LocationSubscription | null>(null);
 
+  // ─── Use Location.watchHeadingAsync — calibrated, tilt-compensated ────────
+  // This is the same approach used by well-known compass/Qibla apps and is
+  // far more reliable than raw Magnetometer data, which ignores device tilt
+  // and requires manual axis remapping per platform.
   useEffect(() => {
-    if (!Magnetometer) return;
-    try {
-      Magnetometer.setUpdateInterval(100);
-      subRef.current = Magnetometer.addListener(({ x, y }) => {
-        let angle = Math.atan2(y, x) * (180 / Math.PI);
-        if (angle < 0) angle += 360;
-        setHeading(angle);
-      });
-    } catch {}
-    return () => subRef.current?.remove();
+    if (Platform.OS === 'web') {
+      setHeadingAvailable(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Location permission is already granted for prayer times.
+        // watchHeadingAsync re-uses it — no extra prompt needed.
+        const sub = await Location.watchHeadingAsync((headingData) => {
+          if (cancelled) return;
+          // trueHeading is best (GPS-corrected); fall back to magHeading
+          const deg =
+            headingData.trueHeading >= 0
+              ? headingData.trueHeading
+              : headingData.magHeading;
+          setHeading(deg);
+          setHeadingAvailable(true);
+        });
+        subRef.current = sub;
+      } catch {
+        if (!cancelled) setHeadingAvailable(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      subRef.current?.remove();
+    };
   }, []);
 
-  // Calculate base angles
+  // ─── Qibla bearing & alignment ────────────────────────────────────────────
   const qiblaAngle = location ? getQiblaAngle(location.lat, location.lon) : 0;
   const distanceKm = location ? Math.round(getDistanceKm(location.lat, location.lon, MECCA_LAT, MECCA_LON)) : 0;
 
-  // Determine if pointing exactly at Qibla (accounting for boundary wrapping)
   const rawDiff = Math.abs(((qiblaAngle - heading + 180) % 360) - 180);
   const angleDifference = Number.isNaN(rawDiff) ? 180 : rawDiff;
-  const aligned = location ? angleDifference <= ALIGNMENT_THRESHOLD : false;
+  const aligned = !!location && headingAvailable === true && angleDifference <= ALIGNMENT_THRESHOLD;
 
-  useEffect(() => {
-    setIsAligned(aligned);
-  }, [aligned]);
+  useEffect(() => { setIsAligned(aligned); }, [aligned]);
 
+  // ─── Smooth animated needle rotation ──────────────────────────────────────
   useEffect(() => {
     if (!location) return;
-
-    // Calculate the physical needle offset
     const targetAngle = qiblaAngle - heading;
-
-    // Shortest-path interpolation algorithm
     let diff = targetAngle - (lastAngle.current % 360);
     if (diff < -180) diff += 360;
     if (diff > 180) diff -= 360;
-
     const finalAngle = lastAngle.current + diff;
     lastAngle.current = finalAngle;
 
     Animated.spring(rotateVal, {
       toValue: finalAngle,
       useNativeDriver: true,
-      damping: 18,   // Increases stability against tiny hand shakes
+      damping: 18,
       stiffness: 90,
     }).start();
   }, [heading, location, qiblaAngle, rotateVal]);
 
   const rotate = rotateVal.interpolate({
     inputRange: [-10000, 10000],
-    outputRange: ['-10000deg', '10000deg'], // Standard interpolation supporting continuous scaling
+    outputRange: ['-10000deg', '10000deg'],
   });
 
   return (
@@ -128,29 +140,26 @@ export default function QiblaScreen() {
         <View style={styles.center}>
           <Text style={[styles.arabicLabel, { color: colors.gold }]}>القبلة</Text>
 
-          {/* Compass Ring - Swaps to green when perfectly aligned */}
+          {/* Compass ring — green when aligned */}
           <View style={[
             styles.compassRing,
             { borderColor: isAligned ? colors.emerald : colors.primary }
           ]}>
-            {/* Cardinal directions */}
+            {/* Cardinal direction labels */}
             {(['N', 'E', 'S', 'W'] as const).map((d, i) => (
               <View key={d} style={[styles.compassDir, { transform: [{ rotate: `${i * 90}deg` }, { translateY: -96 }] }]}>
                 <Text style={[styles.compassDirText, { color: d === 'N' ? colors.destructive : colors.mutedForeground }]}>{d}</Text>
               </View>
             ))}
 
-            {/* Top Kaaba marker */}
+            {/* Kaaba marker at top */}
             <View style={[styles.topMarker, { backgroundColor: isAligned ? colors.emerald : colors.primary }]}>
               <Text style={styles.topMarkerIcon}>🕋</Text>
             </View>
 
-            {/* Qibla needle - Switches colors when aligned */}
+            {/* Animated Qibla needle */}
             <Animated.View style={[styles.needle, { transform: [{ rotate }] }]}>
-              <View style={[
-                styles.needleTip,
-                { backgroundColor: isAligned ? colors.emerald : colors.gold }
-              ]} />
+              <View style={[styles.needleTip, { backgroundColor: isAligned ? colors.emerald : colors.gold }]} />
               <View style={[styles.needleBase, { backgroundColor: colors.muted }]} />
             </Animated.View>
 
@@ -160,30 +169,37 @@ export default function QiblaScreen() {
               {
                 backgroundColor: isAligned ? '#E8F5E9' : colors.card,
                 borderColor: isAligned ? colors.emerald : colors.gold,
-                transform: [{ scale: isAligned ? 1.15 : 1.0 }]
+                transform: [{ scale: isAligned ? 1.15 : 1.0 }],
               }
             ]}>
               <View style={[styles.pivotInner, { backgroundColor: isAligned ? colors.emerald : colors.gold }]} />
             </View>
           </View>
 
-          {/* Heading readout */}
+          {/* Live heading readout */}
           <View style={styles.headingReadout}>
             <Text style={[styles.headingDegrees, { color: colors.emerald }]}>
               {Math.round(heading)}°
             </Text>
             <Text style={[styles.headingLabel, { color: colors.mutedForeground }]}>
-              {getCardinalLabel(heading)} {t('fromNorth')} - {t('compassLive')}
+              {getCardinalLabel(heading)} {t('fromNorth')} — {t('compassLive')}
             </Text>
           </View>
 
-          {/* Layman visual guidance banner */}
+          {/* Alignment banner */}
           <View style={styles.guidanceContainer}>
             {isAligned ? (
               <View style={[styles.successBanner, { backgroundColor: '#E8F5E9', borderColor: colors.emerald }]}>
                 <Feather name="check-circle" size={16} color={colors.emerald} />
                 <Text style={[styles.successText, { color: colors.emerald }]}>
                   {t('facingQibla')}
+                </Text>
+              </View>
+            ) : headingAvailable === false ? (
+              <View style={[styles.warningCard, { backgroundColor: colors.card }]}>
+                <Feather name="alert-circle" size={14} color={colors.gold} />
+                <Text style={[styles.warningText, { color: colors.mutedForeground }]}>
+                  Compass not available on this device or in Expo Go.
                 </Text>
               </View>
             ) : (
@@ -218,15 +234,6 @@ export default function QiblaScreen() {
               <Text style={[styles.changeText, { color: colors.primary }]}>Change</Text>
             </TouchableOpacity>
           </View>
-
-          {!Magnetometer && (
-            <View style={[styles.warningCard, { backgroundColor: colors.card }]}>
-              <Feather name="alert-circle" size={14} color={colors.gold} />
-              <Text style={[styles.warningText, { color: colors.mutedForeground }]}>
-                Compass unavailable in Expo Go. Install a development build for live compass.
-              </Text>
-            </View>
-          )}
         </View>
       )}
     </SafeAreaView>
@@ -235,125 +242,49 @@ export default function QiblaScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24 },
-  subtitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    marginTop: 16,
-  },
+  subtitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', marginTop: 16 },
   title: { fontSize: 28, fontWeight: '700', marginBottom: 8, textAlign: 'center' },
-  arabicLabel: {
-    fontSize: 22,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
+  arabicLabel: { fontSize: 22, fontWeight: '600', textAlign: 'center', marginBottom: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 },
   noLoc: { fontSize: 16, textAlign: 'center', marginBottom: 16, lineHeight: 24 },
   btn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
   btnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   compassRing: {
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    borderWidth: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    width: 260, height: 260, borderRadius: 130, borderWidth: 3,
+    alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
-  compassDir: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  compassDir: { position: 'absolute', width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   compassDirText: { fontSize: 14, fontWeight: '700' },
   topMarker: {
-    position: 'absolute',
-    top: 14,
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    position: 'absolute', top: 14, width: 40, height: 40,
+    borderRadius: 12, alignItems: 'center', justifyContent: 'center', zIndex: 10,
   },
   topMarkerIcon: { fontSize: 20 },
   needle: { width: 4, height: 180, alignItems: 'center', position: 'absolute' },
   needleTip: { flex: 1, width: 4, borderRadius: 2 },
   needleBase: { flex: 1, width: 4, borderRadius: 2 },
   centerDot: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
+    width: 52, height: 52, borderRadius: 26, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', position: 'absolute',
   },
-  pivotInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  headingReadout: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headingDegrees: {
-    fontSize: 36,
-    fontWeight: '700',
-  },
-  headingLabel: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  guidanceContainer: {
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  guidanceText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  pivotInner: { width: 12, height: 12, borderRadius: 6 },
+  headingReadout: { alignItems: 'center', justifyContent: 'center' },
+  headingDegrees: { fontSize: 36, fontWeight: '700' },
+  headingLabel: { fontSize: 13, marginTop: 2 },
+  guidanceContainer: { height: 60, alignItems: 'center', justifyContent: 'center', width: '100%' },
+  guidanceText: { fontSize: 14, textAlign: 'center' },
   successBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1,
   },
-  successText: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
+  successText: { fontWeight: '700', fontSize: 14 },
   infoRow: { flexDirection: 'row', gap: 16 },
   infoCard: { flex: 1, borderRadius: 12, padding: 16, alignItems: 'center' },
   infoLabel: { fontSize: 12, marginBottom: 4 },
   infoValue: { fontSize: 22, fontWeight: '700' },
-  locCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
+  locCard: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 },
   locText: { flex: 1, fontSize: 13 },
   changeText: { fontSize: 13, fontWeight: '600' },
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderRadius: 10,
-    padding: 12,
-    marginTop: -8,
-  },
+  warningCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: 10, padding: 12 },
   warningText: { flex: 1, fontSize: 12, lineHeight: 18 },
 });

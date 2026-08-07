@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
@@ -10,7 +10,7 @@ let Notifications: NotificationsModule | null = null;
 try {
   if (Platform.OS !== 'web') {
     Notifications = require('expo-notifications') as NotificationsModule;
-    // Register handler immediately after successful load
+    // Register foreground handler immediately after successful load
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -69,6 +69,29 @@ export const CALC_METHODS = [
 const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 const ADHAN_CHANNEL_ID = 'adhan-channel';
 
+// ─── Create Android notification channel eagerly ────────────────────────────
+// This must be done before scheduling any notifications so the channel exists
+// when the OS delivers them. Creating it multiple times is a no-op.
+async function ensureAdhanChannel() {
+  if (!Notifications || Platform.OS !== 'android') return;
+  try {
+    await Notifications.setNotificationChannelAsync(ADHAN_CHANNEL_ID, {
+      name: 'Adhan Prayer Alerts',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'adhan.mp3',
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+      enableLights: true,
+      bypassDnd: true,
+    });
+  } catch (err) {
+    console.warn('[Adhan] channel creation failed', err);
+  }
+}
+
+// Call channel setup as soon as the module loads on Android
+ensureAdhanChannel();
+
 function parseTime(timeStr: string, baseDate: Date): Date {
   // AlAdhan API returns 24-hour format (e.g. "04:30"), but the previous
   // code assumed 12-hour with AM/PM. Handle both safely.
@@ -111,6 +134,13 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [scheduledCount, setScheduledCount] = useState(0);
 
+  // ── Keep a ref so async callbacks always read the latest value ─────────────
+  // This is the root fix for the stale-closure bug: fetchPrayerTimes was
+  // capturing adhanEnabled = false from the initial render, then calling
+  // scheduleAdhanNotifications with enabled=false and wiping all alarms.
+  const adhanEnabledRef = useRef(false);
+
+  // ── Restore persisted settings on mount ────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -121,7 +151,11 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         ]);
         if (savedLoc) setLocation(JSON.parse(savedLoc));
         if (savedMethod) setCalcMethod(Number(savedMethod));
-        if (savedAdhan) setAdhanEnabledState(savedAdhan === 'true');
+        const isEnabled = savedAdhan === 'true';
+        if (isEnabled) {
+          setAdhanEnabledState(true);
+          adhanEnabledRef.current = true;
+        }
       } catch {}
     })();
   }, []);
@@ -139,6 +173,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [prayerTimes]);
 
+  // ── Fetch today's prayer times + monthly calendar ──────────────────────────
   const fetchPrayerTimes = async (lat: number, lon: number, method: number) => {
     setLoading(true);
     setError(null);
@@ -164,8 +199,8 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
           monthNameAr: h.month.ar, monthNameEn: h.month.en, weekdayEn: h.weekday.en,
         });
       }
-      // Fetch monthly calendar for accurate Adhan scheduling across days
-      await fetchMonthlyCalendar(lat, lon, method, adhanEnabled);
+      // Pass the ref value — never the stale closure state variable
+      await fetchMonthlyCalendar(lat, lon, method, adhanEnabledRef.current);
     } catch {
       try {
         const cached = await AsyncStorage.getItem('cached_prayer_times');
@@ -194,7 +229,6 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         await scheduleAdhanNotifications(calendar, enabled);
       }
     } catch {
-      // Fallback to today's cached times if calendar fails
       try {
         const cached = await AsyncStorage.getItem('cached_prayer_times');
         if (cached) {
@@ -208,7 +242,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   const scheduleAdhanNotifications = async (calendar: { date: string; timings: PrayerTimes }[], enabled: boolean) => {
     if (!Notifications) return;
     try {
-      // Request permission if enabling; check-only if called with enabled=false (cancel path)
+      // Request permission if enabling; check-only if cancelling
       const permResult = enabled
         ? await Notifications.requestPermissionsAsync()
         : await Notifications.getPermissionsAsync();
@@ -217,20 +251,10 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
       if (!isGranted) return;
 
       await Notifications.cancelAllScheduledNotificationsAsync();
-      if (!enabled) return;
+      if (!enabled) { setScheduledCount(0); return; }
 
-      // Android: create a high-priority channel that plays the bundled Adhan sound.
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync(ADHAN_CHANNEL_ID, {
-          name: 'Adhan Prayer Alerts',
-          importance: Notifications.AndroidImportance.HIGH,
-          sound: 'adhan.mp3',
-          vibrationPattern: [0, 250, 250, 250],
-          enableVibrate: true,
-          enableLights: true,
-          bypassDnd: true,
-        });
-      }
+      // Ensure the Android channel exists before scheduling
+      await ensureAdhanChannel();
 
       const now = new Date();
       let scheduled = 0;
@@ -249,8 +273,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
               content.channelId = ADHAN_CHANNEL_ID;
               content.priority = Notifications.AndroidNotificationPriority.HIGH;
             } else {
-              // iOS: mark as time-sensitive so it has a better chance of playing the sound
-              // even when Focus / Do Not Disturb is active.
+              // iOS: time-sensitive so it plays through Focus / Do Not Disturb
               content.interruptionLevel = 'timeSensitive';
             }
             await Notifications.scheduleNotificationAsync({
@@ -273,6 +296,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setAdhanEnabled = async (enabled: boolean) => {
+    adhanEnabledRef.current = enabled;
     setAdhanEnabledState(enabled);
     await AsyncStorage.setItem('adhan_enabled', String(enabled));
     if (!Notifications) return;
@@ -280,6 +304,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
       const perm = await Notifications.requestPermissionsAsync();
       const granted = perm.granted || (perm as any).status === 'granted';
       if (!granted) {
+        adhanEnabledRef.current = false;
         setAdhanEnabledState(false);
         await AsyncStorage.setItem('adhan_enabled', 'false');
         return;
@@ -352,9 +377,11 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         alert('Notification permission is required to test Adhan.');
         return;
       }
+      // Ensure channel exists on Android before scheduling the test
+      await ensureAdhanChannel();
       const testDate = new Date(Date.now() + 5000);
       const content: any = {
-        title: 'Adhan Test',
+        title: 'Adhan Test 🕌',
         body: 'This is a test of the Adhan notification sound.',
         sound: 'adhan.mp3',
       };
@@ -368,7 +395,7 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         content,
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: testDate },
       });
-      alert(`Test Adhan scheduled for ${testDate.toLocaleTimeString()}. Close the app or wait for the notification.`);
+      alert(`Test Adhan scheduled in 5 seconds. Background the app to hear it.`);
     } catch (err) {
       console.warn('[Adhan] test notification failed', err);
       alert('Failed to schedule test Adhan.');

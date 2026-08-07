@@ -93,7 +93,9 @@ export default function SettingsScreen() {
             <Text style={styles.bellEmoji}>🔔</Text>
             <View style={styles.rowInfo}>
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>{t('enableNotifications')}</Text>
-              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Play Adhan at prayer time, even when the app is closed</Text>
+              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>
+                Receive a prayer-time notification sound. Device sound, Focus, and notification settings apply.
+              </Text>
             </View>
             <Switch
               value={adhanEnabled}
