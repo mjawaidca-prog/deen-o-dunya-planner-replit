@@ -30,7 +30,12 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0A1628"
       },
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "VIBRATE"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "VIBRATE",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -47,7 +52,7 @@
       [
         "expo-notifications",
         {
-          "sounds": []
+          "sounds": ["./assets/sounds/adhan.wav"]
         }
       ],
       [
