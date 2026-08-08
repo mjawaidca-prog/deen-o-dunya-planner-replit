@@ -24,9 +24,17 @@
       "bundleIdentifier": "com.deenodunya.planner",
       "buildNumber": "19",
       "infoPlist": {
-        "UIBackgroundModes": ["audio", "fetch", "remote-notification"],
+        "UIBackgroundModes": [
+          "audio",
+          "fetch",
+          "remote-notification",
+          "audio",
+          "fetch",
+          "remote-notification"
+        ],
         "NSLocationWhenInUseUsageDescription": "Your location is used to calculate accurate prayer times and find nearby mosques.",
-        "NSLocationAlwaysUsageDescription": "Your location is used to calculate accurate prayer times."
+        "NSLocationAlwaysUsageDescription": "Your location is used to calculate accurate prayer times.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -40,14 +48,15 @@
         "backgroundColor": "#0A1628"
       },
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "VIBRATE",
-        "WAKE_LOCK",
-        "RECEIVE_BOOT_COMPLETED",
-        "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM",
-        "POST_NOTIFICATIONS"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -72,10 +81,14 @@
         "expo-notifications",
         {
           "android": {
-            "sounds": ["./assets/sounds/adhan.wav"]
+            "sounds": [
+              "./assets/sounds/adhan.wav"
+            ]
           },
           "ios": {
-            "sounds": ["./assets/sounds/adhan.wav"]
+            "sounds": [
+              "./assets/sounds/adhan.wav"
+            ]
           }
         }
       ],
