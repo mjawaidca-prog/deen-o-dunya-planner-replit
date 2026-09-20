@@ -1,1 +1,10 @@
+- [Android Maps release safety](android-maps-release-safety.md) — missing Maps metadata crashes native view creation; verify native configuration before restoring the embedded map.
+- [iOS Adhan notification sounds](ios-adhan-notification-sounds.md) — Expo notification sounds use one top-level plugin field; nested platform fields are ignored.
 - [Deen o Dunya app architecture](deen-o-dunya-arch.md) — Islamic planner Expo app: screens, providers, data sources, known caveats
+- [expo-notifications assert shim](expo-notifications-assert-shim.md) — expo-notifications@0.32.17 (SDK 54) pulls in @ide/backoff which uses Node assert; fix via metro.config.js extraNodeModules shim
+- [expo-speech lazy require](expo-speech-lazy-require.md) — expo-speech must be lazy-required (try-catch) not statically imported; static import crashes Expo Go on iOS/Android at startup
+- [Expo Go incompatible native modules](expo-go-incompatible-modules.md) — expo-blur (BlurView) and expo-symbols (SymbolView) crash Expo Go; replace with View + Feather icons
+- [Clip Maker production API](clip-production-api.md) — release builds need the published API origin, and deployments need explicit ffmpeg/ffprobe resolution
+- [Metro bundle HTTP 500 diagnostics](metro-bundle-http-500.md) — the mobile publish wrapper can hide Metro's parser error; direct Expo export reveals the real file and code frame
+- [Mobile dependency lock alignment](mobile-dependency-lock-alignment.md) — keep the mobile manifest and pnpm lockfile synchronized after Expo package changes
+- [AlQuran.cloud alias identifiers](alquran-cloud-alias-identifiers.md) — the API resolves requested edition aliases to different response identifiers; never strict-match the requested id
