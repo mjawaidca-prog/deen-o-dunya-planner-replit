@@ -22,7 +22,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deenodunya.planner",
-      "buildNumber": "27",
+      "buildNumber": "28",
       "infoPlist": {
         "UIBackgroundModes": [
           "audio",
@@ -77,16 +77,9 @@
       [
         "expo-notifications",
         {
-          "android": {
-            "sounds": [
-              "./assets/sounds/adhan.wav"
-            ]
-          },
-          "ios": {
-            "sounds": [
-              "./assets/sounds/adhan.wav"
-            ]
-          }
+          "sounds": [
+            "./assets/sounds/adhan.wav"
+          ]
         }
       ],
       [
