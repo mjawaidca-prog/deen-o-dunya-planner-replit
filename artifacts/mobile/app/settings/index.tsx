@@ -28,7 +28,17 @@ export default function SettingsScreen() {
   const colors = useColors();
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useApp();
-  const { calculationMethod, setCalculationMethod } = usePrayer();
+  const {
+    calculationMethod,
+    setCalculationMethod,
+    adhanEnabled,
+    notificationPermission,
+    scheduledNotificationCount,
+    notificationError,
+    setAdhanEnabled,
+    testAdhan,
+    openNotificationSettings,
+  } = usePrayer();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -86,6 +96,45 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        {/* Adhan Notifications */}
+        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{t('notifications').toUpperCase()}</Text>
+        <View style={[styles.group, { backgroundColor: colors.card }]}>
+          <View style={[styles.row, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>{t('enableNotifications')}</Text>
+              <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>{t('adhanNotificationHint')}</Text>
+            </View>
+            <Switch
+              value={adhanEnabled}
+              onValueChange={setAdhanEnabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          <View style={[styles.statusCard, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+            <Text style={[styles.statusText, { color: colors.foreground }]}>
+              {t('notificationPermission')}: {t(`permission_${notificationPermission}`)}
+            </Text>
+            <Text style={[styles.statusText, { color: colors.foreground }]}>
+              {t('scheduledAlerts')}: {scheduledNotificationCount}
+            </Text>
+            {notificationError && <Text style={styles.errorText}>{notificationError}</Text>}
+          </View>
+          <TouchableOpacity
+            style={[styles.row, { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+            onPress={testAdhan}
+          >
+            <Feather name="volume-2" size={19} color={colors.primary} />
+            <Text style={[styles.rowLabel, { color: colors.foreground, flex: 1 }]}>{t('testAdhan')}</Text>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={openNotificationSettings}>
+            <Feather name="settings" size={19} color={colors.primary} />
+            <Text style={[styles.rowLabel, { color: colors.foreground, flex: 1 }]}>{t('openDeviceSettings')}</Text>
+            <Feather name="external-link" size={17} color={colors.mutedForeground} />
+          </TouchableOpacity>
+        </View>
+
         {/* About */}
         <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>ABOUT</Text>
         <View style={[styles.group, { backgroundColor: colors.card }]}>
@@ -115,6 +164,9 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowLabel: { fontSize: 15 },
   rowSub: { fontSize: 12, marginTop: 1 },
+  statusCard: { paddingHorizontal: 16, paddingVertical: 12, gap: 5 },
+  statusText: { fontSize: 13 },
+  errorText: { color: '#DC2626', fontSize: 12, lineHeight: 17, marginTop: 2 },
   aboutCard: { alignItems: 'center', padding: 24, gap: 6 },
   aboutEmoji: { fontSize: 40 },
   aboutTitle: { fontSize: 18, fontWeight: '700' },
