@@ -10,11 +10,7 @@
     "preview": {
       "distribution": "internal"
     },
-    "production": {
-      "pnpm": {
-        "frozenLockfile": false
-      }
-    }
+    "production": {}
   },
   "submit": {
     "production": {}
