@@ -11,5 +11,7 @@ The Expo mobile manifest and the workspace pnpm lockfile must be synchronized wh
 package manifest, sync dependencies through the mobile workspace and run the
 mobile type check plus Metro startup before requesting a store build. Keep the
 root `packageManager` pinned to the pnpm release that writes the committed
-lockfile format; otherwise Expo CI may select an older pnpm, ignore the
-lockfile as incompatible, and fail its mandatory frozen install.
+lockfile format. EAS Build defaults Corepack off, so each EAS build profile
+must also enable Corepack and pin that pnpm version; otherwise EAS may use its
+older global pnpm, ignore the lockfile as incompatible, and fail its mandatory
+frozen install.
