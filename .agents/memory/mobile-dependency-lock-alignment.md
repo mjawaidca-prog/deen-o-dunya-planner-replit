@@ -15,3 +15,8 @@ lockfile format. EAS Build defaults Corepack off, so each EAS build profile
 must also enable Corepack and pin that pnpm version; otherwise EAS may use its
 older global pnpm, ignore the lockfile as incompatible, and fail its mandatory
 frozen install.
+
+For GitHub-triggered builds of this monorepo, EAS reads build configuration
+from the repository root even though the Expo app and its local CLI config live
+in a nested artifact directory. Keep an equivalent root build configuration;
+the nested config alone does not control the remote GitHub builder.
