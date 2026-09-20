@@ -46,16 +46,16 @@ interface PrayerContextType {
   nextPrayer: NextPrayer | null;
   location: LocationData | null;
   calculationMethod: number;
+  adhanEnabled: boolean;
   loading: boolean;
   error: string | null;
-  adhanEnabled: boolean;
   notificationPermission: NotificationPermission;
   scheduledNotificationCount: number;
   notificationError: string | null;
   requestLocation: () => Promise<void>;
   setCalculationMethod: (method: number) => void;
-  refreshPrayerTimes: () => Promise<void>;
   setAdhanEnabled: (enabled: boolean) => Promise<void>;
+  refreshPrayerTimes: () => Promise<void>;
   testAdhan: () => Promise<void>;
   openNotificationSettings: () => Promise<void>;
   refreshNotificationStatus: () => Promise<void>;
@@ -74,20 +74,92 @@ const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 const ADHAN_SOUND = 'adhan.wav';
 const ADHAN_CHANNEL_ID = 'adhan_v1';
 const ADHAN_ENABLED_KEY = 'adhan_enabled';
-const SCHEDULE_DAYS = 7;
+// iOS keeps at most 64 pending local notifications. Twelve days of five
+// prayers leaves four slots for the test alert and other app notifications.
+const SCHEDULE_DAYS = 12;
 
-function parseTime(timeStr: string, baseDate: Date): Date {
-  const [time, period] = timeStr.split(' ');
-  let [hours, minutes] = time.split(':').map(Number);
+type CalendarDate = { year: number; month: number; day: number };
+
+function parseClock(timeStr: string): { hours: number; minutes: number } {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
+  if (!match) throw new Error(`Invalid prayer time: ${timeStr}`);
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = match[3]?.toUpperCase();
   if (period === 'PM' && hours !== 12) hours += 12;
   if (period === 'AM' && hours === 12) hours = 0;
-  const d = new Date(baseDate);
-  d.setHours(hours, minutes, 0, 0);
-  return d;
+  if (hours > 23 || minutes > 59) throw new Error(`Invalid prayer time: ${timeStr}`);
+  return { hours, minutes };
+}
+
+function parseTime(timeStr: string, baseDate: Date): Date {
+  const { hours, minutes } = parseClock(timeStr);
+  const date = new Date(baseDate);
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+function datePartsInTimeZone(date: Date, timeZone: string): CalendarDate {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(part => part.type === type)?.value);
+  return { year: value('year'), month: value('month'), day: value('day') };
+}
+
+function addCalendarDays(date: CalendarDate, offset: number): CalendarDate {
+  const shifted = new Date(Date.UTC(date.year, date.month - 1, date.day + offset));
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  };
+}
+
+function timeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(part => part.type === type)?.value);
+  return Date.UTC(
+    value('year'),
+    value('month') - 1,
+    value('day'),
+    value('hour'),
+    value('minute'),
+    value('second'),
+  ) - date.getTime();
+}
+
+function prayerDateInTimeZone(timeStr: string, date: CalendarDate, timeZone: string): Date {
+  const { hours, minutes } = parseClock(timeStr);
+  const wallClockUtc = Date.UTC(date.year, date.month - 1, date.day, hours, minutes);
+  let instant = wallClockUtc;
+  // Recalculate once so DST transitions use the offset at the prayer instant.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    instant = wallClockUtc - timeZoneOffsetMs(new Date(instant), timeZone);
+  }
+  return new Date(instant);
 }
 
 function formatApiDate(date: Date): string {
   return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+}
+
+function formatApiCalendarDate(date: CalendarDate): string {
+  return `${date.day}-${date.month}-${date.year}`;
 }
 
 function getNextPrayer(times: PrayerTimes): NextPrayer | null {
@@ -102,7 +174,11 @@ function getNextPrayer(times: PrayerTimes): NextPrayer | null {
   };
 }
 
-type PermissionSnapshot = { granted?: boolean; status?: string; ios?: { status?: number } };
+type PermissionSnapshot = {
+  granted?: boolean;
+  status?: string;
+  ios?: { status?: number; allowsSound?: boolean | null };
+};
 
 function getPermissionSnapshot(result: unknown): PermissionSnapshot {
   return result as PermissionSnapshot;
@@ -158,6 +234,13 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
           ? 'granted'
           : permission.status === 'denied' ? 'denied' : 'undetermined',
       );
+      if (
+        Platform.OS === 'ios' &&
+        isNotificationPermissionGranted(permissions) &&
+        permission.ios?.allowsSound === false
+      ) {
+        setNotificationError('Notifications are allowed, but Sounds are off. Enable Sounds in iOS Settings.');
+      }
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       setScheduledNotificationCount(scheduled.length);
     } catch (notificationStatusError) {
@@ -176,12 +259,25 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
     const current = await Notifications.getPermissionsAsync();
     const result = isNotificationPermissionGranted(current)
       ? current
-      : await Notifications.requestPermissionsAsync();
+      : await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
     const permission = getPermissionSnapshot(result);
-    const granted = isNotificationPermissionGranted(result);
-    setNotificationPermission(granted ? 'granted' : permission.status === 'denied' ? 'denied' : 'undetermined');
-    if (!granted) setNotificationError('Notification permission is required for Adhan alerts.');
-    return granted;
+    const authorized = isNotificationPermissionGranted(result);
+    const soundAllowed = Platform.OS !== 'ios' || permission.ios?.allowsSound !== false;
+    setNotificationPermission(authorized ? 'granted' : permission.status === 'denied' ? 'denied' : 'undetermined');
+    if (!authorized) {
+      setNotificationError('Notification permission is required for Adhan alerts.');
+    } else if (!soundAllowed) {
+      setNotificationError('Notifications are allowed, but Sounds are off. Enable Sounds in iOS Settings.');
+    } else {
+      setNotificationError(null);
+    }
+    return authorized && soundAllowed;
   }, []);
 
   const schedulePrayerNotifications = useCallback(async (lat: number, lon: number, method: number) => {
@@ -189,25 +285,58 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
     try {
       const savedEnabled = await AsyncStorage.getItem(ADHAN_ENABLED_KEY);
       if (savedEnabled === 'false') return;
-      const permissions = await Notifications.getPermissionsAsync();
+      let permissions = await Notifications.getPermissionsAsync();
+      if (!isNotificationPermissionGranted(permissions)) {
+        const currentPermission = getPermissionSnapshot(permissions);
+        if (currentPermission.status !== 'denied') {
+          permissions = await Notifications.requestPermissionsAsync({
+            ios: {
+              allowAlert: true,
+              allowBadge: true,
+              allowSound: true,
+            },
+          });
+        }
+      }
       if (!isNotificationPermissionGranted(permissions)) {
         const permission = getPermissionSnapshot(permissions);
         setNotificationPermission(permission.status === 'denied' ? 'denied' : 'undetermined');
+        setNotificationError('Enable notifications and Sounds in iOS Settings to hear the Adhan.');
         return;
       }
+      const permission = getPermissionSnapshot(permissions);
+      if (Platform.OS === 'ios' && permission.ios?.allowsSound === false) {
+        setNotificationPermission('granted');
+        setNotificationError('Notifications are allowed, but Sounds are off. Enable Sounds in iOS Settings.');
+        return;
+      }
+      setNotificationPermission('granted');
 
       setNotificationError(null);
       await configureAndroidChannel();
 
       const now = new Date();
-      const days = Array.from({ length: SCHEDULE_DAYS }, (_, offset) => {
-        const date = new Date(now);
-        date.setDate(now.getDate() + offset);
-        return date;
-      });
+      // Resolve the coordinate's IANA timezone before constructing absolute
+      // notification dates. Device timezone can differ while travelling.
+      const timezoneProbe = await fetch(
+        `https://api.aladhan.com/v1/timings/${formatApiDate(now)}?latitude=${lat}&longitude=${lon}&method=${method}`,
+      );
+      const timezonePayload = await timezoneProbe.json();
+      if (timezonePayload.code !== 200 || !timezonePayload.data?.meta?.timezone) {
+        throw new Error('Could not determine the prayer location timezone.');
+      }
+      const timeZone = String(timezonePayload.data.meta.timezone);
+      const todayAtLocation = datePartsInTimeZone(now, timeZone);
+      const days = Array.from(
+        { length: SCHEDULE_DAYS },
+        (_, offset) => addCalendarDays(todayAtLocation, offset),
+      );
       const responses = await Promise.all(days.map(date =>
-        fetch(`https://api.aladhan.com/v1/timings/${formatApiDate(date)}?latitude=${lat}&longitude=${lon}&method=${method}`),
+        fetch(`https://api.aladhan.com/v1/timings/${formatApiCalendarDate(date)}?latitude=${lat}&longitude=${lon}&method=${method}`),
       ));
+      if (responses.some(response => !response.ok)) {
+        throw new Error('Could not retrieve future prayer times.');
+      }
       const payloads = await Promise.all(responses.map(response => response.json()));
       if (payloads.some(payload => payload.code !== 200)) {
         throw new Error('Could not retrieve future prayer times.');
@@ -219,13 +348,14 @@ export function PrayerProvider({ children }: { children: React.ReactNode }) {
         const payload = payloads[dayIndex];
         const timings = payload.data.timings as PrayerTimes;
         for (const prayer of PRAYER_NAMES) {
-          const prayerDate = parseTime(timings[prayer], days[dayIndex]);
+          const prayerDate = prayerDateInTimeZone(timings[prayer], days[dayIndex], timeZone);
           if (prayerDate <= now) continue;
           await Notifications.scheduleNotificationAsync({
             content: {
               title: `${prayer} Time`,
               body: `It is time for ${prayer} prayer. Allahu Akbar!`,
               sound: ADHAN_SOUND,
+              data: { kind: 'adhan', prayer, timeZone },
             },
             trigger: {
               type: Notifications.SchedulableTriggerInputTypes.DATE,
