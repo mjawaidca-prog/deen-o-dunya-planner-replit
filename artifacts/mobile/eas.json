@@ -5,6 +5,8 @@
   },
   "build": {
     "development": {
+      "corepack": true,
+      "pnpm": "10.26.1",
       "developmentClient": true,
       "distribution": "internal",
       "android": {
@@ -12,12 +14,16 @@
       }
     },
     "preview": {
+      "corepack": true,
+      "pnpm": "10.26.1",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "corepack": true,
+      "pnpm": "10.26.1",
       "android": {
         "buildType": "app-bundle"
       }
