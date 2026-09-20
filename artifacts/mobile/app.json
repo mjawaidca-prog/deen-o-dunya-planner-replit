@@ -2,7 +2,7 @@
   "expo": {
     "name": "Deen o Dunya Planner",
     "slug": "mobile",
-    "version": "1.3.5",
+    "version": "1.3.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -22,12 +22,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.deenodunya.planner",
-      "buildNumber": "19",
+      "buildNumber": "27",
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
-          "fetch",
-          "remote-notification",
           "audio",
           "fetch",
           "remote-notification"
@@ -39,7 +36,7 @@
     },
     "android": {
       "package": "com.deenodunya.planner",
-      "versionCode": 10,
+      "versionCode": 11,
       "blockedPermissions": [
         "android.permission.ACTIVITY_RECOGNITION"
       ],
@@ -97,7 +94,10 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Deen o Dunya to access your location for prayer times and nearby masjids."
         }
-      ]
+      ],
+      "./scripts/removeActivityRecognitionPermission",
+      "./scripts/androidReleaseOptimization",
+      "./scripts/androidMapsCredentials"
     ],
     "experiments": {
       "typedRoutes": true,
