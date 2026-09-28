@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
-  Dimensions,
   Linking,
   Modal,
   ScrollView,
@@ -10,19 +8,32 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ResizeMode, Video } from "expo-av";
 import { Qari, getAudioUrl } from "@/constants/qaris";
-import { getAppOrigin } from "@/lib/runtime";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
+import {
+  AUDIO_TRANSLATORS,
+  AudioTranslator,
+  getTranslationAudioUrl,
+} from "@/constants/audioTranslators";
+import {
+  getAppOrigin,
+  getRequestFailure,
+  RequestFailure,
+} from "@/lib/runtime";
 
 export interface QuranClipAyah {
   numberInSurah: number;
   text: string;
+  /** Generic translation (used as English fallback) */
   translation: string;
+  /** Explicit English translation — shown when user picks "English" */
+  translationEn?: string;
+  /** Explicit Urdu translation — shown when user picks "Urdu" */
+  translationUr?: string;
 }
 
 export interface HadithClipItem {
@@ -83,6 +94,7 @@ function normalizeRange(start: number, end: number, max: number) {
 }
 
 export default function ClipModal(props: Props) {
+  const { height: windowHeight } = useWindowDimensions();
   const appName = props.appName?.trim() || "Deen o Dunya Planner";
   const [startAyah, setStartAyah] = useState(
     props.mode === "quran" ? props.quran.defaultStartAyah : 1,
@@ -93,14 +105,17 @@ export default function ClipModal(props: Props) {
   const [selectedQariId, setSelectedQariId] = useState(
     props.mode === "quran" ? props.quran.currentQariId : "",
   );
+  const [selectedAudioTranslatorId, setSelectedAudioTranslatorId] = useState<string>("none");
   const [showQariPicker, setShowQariPicker] = useState(false);
+  const [showAudioTranslatorPicker, setShowAudioTranslatorPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RequestFailure | null>(null);
 
   useEffect(() => {
     if (!props.visible) {
       setShowQariPicker(false);
+      setShowAudioTranslatorPicker(false);
       setCreating(false);
       setError(null);
       setDownloadUrl("");
@@ -111,13 +126,28 @@ export default function ClipModal(props: Props) {
       setStartAyah(props.quran.defaultStartAyah);
       setEndAyah(props.quran.defaultEndAyah);
       setSelectedQariId(props.quran.currentQariId);
+      setSelectedAudioTranslatorId("none");
+      setShowAudioTranslatorPicker(false);
     }
   }, [props.visible, props.mode]);
 
+  const selectedAudioTranslator = useMemo<AudioTranslator>(
+    () =>
+      AUDIO_TRANSLATORS.find((t) => t.id === selectedAudioTranslatorId) ??
+      AUDIO_TRANSLATORS[0],
+    [selectedAudioTranslatorId],
+  );
+
+  const ayahBounds = useMemo(() => {
+    if (props.mode !== "quran" || props.quran.ayahs.length === 0) return { min: 1, max: 1 };
+    const nums = props.quran.ayahs.map((a) => a.numberInSurah);
+    return { min: Math.min(...nums), max: Math.max(...nums) };
+  }, [props.mode, props.mode === "quran" ? props.quran.ayahs : undefined]);
+
   const quranRange = useMemo(() => {
     if (props.mode !== "quran") return { start: 1, end: 1 };
-    return normalizeRange(startAyah, endAyah, props.quran.ayahs.length);
-  }, [props.mode, startAyah, endAyah, props]);
+    return normalizeRange(startAyah, endAyah, ayahBounds.max);
+  }, [props.mode, startAyah, endAyah, ayahBounds]);
 
   const selectedQari = useMemo(() => {
     if (props.mode !== "quran") return null;
@@ -148,19 +178,40 @@ export default function ClipModal(props: Props) {
         (ayah) =>
           ayah.numberInSurah >= range.start && ayah.numberInSurah <= range.end,
       )
-      .map((ayah) => ({
-        reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
-        arabic: ayah.text,
-        translation: ayah.translation,
-        audioUrl: selectedQari
-          ? getAudioUrl(
-              selectedQari.folder,
-              props.quran.surahNumber,
-              ayah.numberInSurah,
-            )
-          : undefined,
-      }));
-  }, [props, quranRange, selectedQari]);
+      .map((ayah) => {
+        // Text shown on screen matches the audio translator's language
+        let translation = "";
+        if (selectedAudioTranslator.language === "en") {
+          translation = ayah.translationEn ?? ayah.translation ?? "";
+        } else if (selectedAudioTranslator.language === "ur") {
+          translation = ayah.translationUr ?? "";
+        }
+        return {
+          reference: `${props.quran.surahEnglishName} ${props.quran.surahNumber}:${ayah.numberInSurah}`,
+          arabic: ayah.text,
+          translation,
+          audioUrl: selectedQari
+            ? getAudioUrl(
+                selectedQari.folder,
+                props.quran.surahNumber,
+                ayah.numberInSurah,
+              )
+            : undefined,
+          audioTranslationUrl:
+            selectedAudioTranslator.everyAyahFolder
+              ? getTranslationAudioUrl(
+                  selectedAudioTranslator.everyAyahFolder,
+                  props.quran.surahNumber,
+                  ayah.numberInSurah,
+                )
+              : undefined,
+          translationLang:
+            selectedAudioTranslator.language !== "none"
+              ? selectedAudioTranslator.language
+              : undefined,
+        };
+      });
+  }, [props, quranRange, selectedQari, selectedAudioTranslator]);
 
   const title =
     props.mode === "quran"
@@ -177,13 +228,17 @@ export default function ClipModal(props: Props) {
   const sourceLabel = props.mode === "quran" ? "Quran Clip" : "Hadith Clip";
   const translationLabel =
     props.mode === "quran"
-      ? props.quran.translationLabel
+      ? selectedAudioTranslator.language === "ur"
+        ? "Urdu"
+        : selectedAudioTranslator.language === "none"
+        ? "Arabic Only"
+        : "English"
       : props.hadith.translationLabel;
 
   const handleGenerate = async () => {
     const origin = getAppOrigin();
     if (!origin) {
-      Alert.alert("Error", "Could not resolve the app URL.");
+      setError(getRequestFailure(new Error("Missing app origin")));
       return;
     }
 
@@ -191,6 +246,7 @@ export default function ClipModal(props: Props) {
     setError(null);
     setDownloadUrl("");
 
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(`${origin}/api/clips/render`, {
         method: "POST",
@@ -202,23 +258,29 @@ export default function ClipModal(props: Props) {
           subtitle: `${subtitle} - ${translationLabel}`,
           reciterLabel:
             props.mode === "quran" && selectedQari
-              ? selectedQari.name
+              ? selectedAudioTranslator.language !== "none"
+                ? `${selectedQari.name} + ${selectedAudioTranslator.name}`
+                : selectedQari.name
               : undefined,
           segments: selectedSegments,
         }),
       });
+      responseStatus = response.status;
 
-      const data = (await response.json()) as
-        | { downloadUrl: string; error?: string }
-        | { error: string };
+      let data: { downloadUrl: string; error?: string } | { error: string };
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error("Invalid server response");
+      }
 
       if (!response.ok) {
-        throw new Error("error" in data ? data.error : "Clip render failed");
+        throw new Error("Clip render failed");
       }
 
       setDownloadUrl(`${origin}${(data as { downloadUrl: string }).downloadUrl}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Clip render failed");
+      setError(getRequestFailure(err, responseStatus));
     } finally {
       setCreating(false);
     }
@@ -248,7 +310,7 @@ export default function ClipModal(props: Props) {
       onRequestClose={props.onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { maxHeight: windowHeight * 0.92 }]}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Create Clip</Text>
             <TouchableOpacity onPress={props.onClose} style={styles.closeBtn}>
@@ -294,7 +356,7 @@ export default function ClipModal(props: Props) {
 
                 <View style={styles.rangeHintRow}>
                   <TouchableOpacity
-                    onPress={() => setStartAyah((value) => Math.max(1, value - 1))}
+                    onPress={() => setStartAyah((value) => Math.max(ayahBounds.min, value - 1))}
                     style={styles.stepBtn}
                   >
                     <Feather name="minus" size={14} color="#0C5A3B" />
@@ -307,7 +369,7 @@ export default function ClipModal(props: Props) {
                   <TouchableOpacity
                     onPress={() =>
                       setEndAyah((value) =>
-                        Math.min(props.quran.ayahs.length, value + 1),
+                        Math.min(ayahBounds.max, value + 1),
                       )
                     }
                     style={styles.stepBtn}
@@ -365,6 +427,56 @@ export default function ClipModal(props: Props) {
                     </View>
                   )}
                 </View>
+
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.label}>Audio Translation</Text>
+                  <TouchableOpacity
+                    style={styles.pickerBtn}
+                    onPress={() => setShowAudioTranslatorPicker((v) => !v)}
+                  >
+                    <Text style={styles.pickerText} numberOfLines={1}>
+                      {selectedAudioTranslator.name}
+                    </Text>
+                    <Feather name="chevron-down" size={14} color="#0C5A3B" />
+                  </TouchableOpacity>
+                  {showAudioTranslatorPicker && (
+                    <View style={styles.dropdown}>
+                      {AUDIO_TRANSLATORS.map((translator) => {
+                        const active = translator.id === selectedAudioTranslatorId;
+                        return (
+                          <TouchableOpacity
+                            key={translator.id}
+                            onPress={() => {
+                              setSelectedAudioTranslatorId(translator.id);
+                              setShowAudioTranslatorPicker(false);
+                            }}
+                            style={[
+                              styles.dropdownItem,
+                              active && styles.dropdownItemActive,
+                            ]}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                style={[
+                                  styles.dropdownLabel,
+                                  active && styles.dropdownLabelActive,
+                                ]}
+                              >
+                                {translator.name}
+                              </Text>
+                              <Text style={styles.dropdownSub}>
+                                {translator.arabicName}
+                              </Text>
+                            </View>
+                            {active && (
+                              <Feather name="check" size={14} color="#0C5A3B" />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
               </>
             )}
 
@@ -389,13 +501,45 @@ export default function ClipModal(props: Props) {
               </Text>
             </View>
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? (
+              <View
+                style={[
+                  styles.errorCard,
+                  error.kind === "network" && styles.networkErrorCard,
+                ]}
+                accessibilityRole="alert"
+              >
+                <View style={styles.errorHeading}>
+                  <Feather
+                    name={error.kind === "network" ? "wifi-off" : "alert-circle"}
+                    size={20}
+                    color="#B42318"
+                  />
+                  <Text style={styles.errorTitle}>{error.title}</Text>
+                </View>
+                <Text style={styles.errorText}>{error.message}</Text>
+                <TouchableOpacity
+                  onPress={handleGenerate}
+                  disabled={creating}
+                  style={styles.retryBtn}
+                  testID="clip-render-retry"
+                  accessibilityRole="button"
+                  accessibilityLabel="Try creating the clip again"
+                >
+                  <Feather name="refresh-cw" size={15} color="#0C5A3B" />
+                  <Text style={styles.retryBtnText}>
+                    {creating ? "Trying again..." : "Try again"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
-            {!downloadUrl ? (
+            {!downloadUrl && !error ? (
               <TouchableOpacity
                 onPress={handleGenerate}
                 disabled={creating}
                 style={[styles.primaryBtn, creating && { opacity: 0.72 }]}
+                testID="clip-render-generate"
               >
                 <Feather name="video" size={16} color="#fff" />
                 <Text style={styles.primaryBtnText}>
@@ -449,7 +593,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingBottom: 24,
-    maxHeight: SCREEN_HEIGHT * 0.92,
   },
   header: {
     flexDirection: "row",
@@ -633,10 +776,47 @@ const styles = StyleSheet.create({
     color: "#44543C",
     lineHeight: 20,
   },
+  errorCard: {
+    backgroundColor: "#FFF3F1",
+    borderWidth: 1,
+    borderColor: "#F4C7C2",
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+  },
+  networkErrorCard: {
+    backgroundColor: "#FFF9EB",
+    borderColor: "#E8D19A",
+  },
+  errorHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  errorTitle: {
+    flex: 1,
+    color: "#7A271A",
+    fontSize: 15,
+    fontWeight: "800",
+  },
   errorText: {
     color: "#B42318",
     fontSize: 13,
     fontWeight: "600",
+    lineHeight: 19,
+  },
+  retryBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+  },
+  retryBtnText: {
+    color: "#0C5A3B",
+    fontSize: 14,
+    fontWeight: "800",
   },
   primaryBtn: {
     backgroundColor: "#0C5A3B",

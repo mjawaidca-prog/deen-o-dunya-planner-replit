@@ -10,18 +10,17 @@
 import React, { useRef, useState } from "react";
 import {
   Alert,
-  Dimensions,
   Modal,
   ScrollView,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
 import { Feather } from "@expo/vector-icons";
 import { captureRef } from "react-native-view-shot";
 import * as ExpoSharing from "expo-sharing";
@@ -44,6 +43,7 @@ interface Props {
 }
 
 export default function PosterModal({ visible, item, onClose }: Props) {
+  const { height: windowHeight } = useWindowDimensions();
   const posterRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
   const [selectedLangs, setSelectedLangs] = useState<Set<"ar" | "en" | "ur">>(
@@ -121,7 +121,7 @@ export default function PosterModal({ visible, item, onClose }: Props) {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { maxHeight: windowHeight * 0.9 }]}>
           {/* Sheet header — always visible */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Share Poster</Text>
@@ -131,7 +131,6 @@ export default function PosterModal({ visible, item, onClose }: Props) {
           </View>
           {item.en || item.ur ? (
             <View style={styles.langToggleRow}>
-              {" "}
               {(["ar", "en", "ur"] as const)
                 .filter(
                   (id) => id === "ar" || (id === "en" ? item.en : item.ur),
@@ -149,7 +148,6 @@ export default function PosterModal({ visible, item, onClose }: Props) {
                         active && styles.langToggleChipActive,
                       ]}
                     >
-                      {" "}
                       <Text
                         style={[
                           styles.langToggleText,
@@ -157,12 +155,12 @@ export default function PosterModal({ visible, item, onClose }: Props) {
                         ]}
                       >
                         {label}
-                      </Text>{" "}
+                      </Text>
                     </TouchableOpacity>
                   );
-                })}{" "}
+                })}
             </View>
-          ) : null}{" "}
+          ) : null}
           {/* Poster — scrollable so it never hides the buttons */}
           <ScrollView
             style={styles.posterScroll}
@@ -282,7 +280,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingBottom: 36,
-    maxHeight: SCREEN_HEIGHT * 0.9,
   },
   posterScroll: {
     flexShrink: 1,
@@ -368,11 +365,11 @@ const styles = StyleSheet.create({
   },
 
   arabicText: {
-    fontSize: 22,
-    lineHeight: 40,
+    fontSize: 24,
+    lineHeight: 48,
     color: "#21302A",
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: "AmiriQuran_400Regular",
     writingDirection: "rtl",
     marginVertical: 8,
   },
@@ -384,10 +381,11 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   urduText: {
-    fontSize: 14,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 36,
     color: "#44543C",
     textAlign: "center",
+    fontFamily: "NotoNastaliqUrdu_400Regular",
     writingDirection: "rtl",
   },
 
