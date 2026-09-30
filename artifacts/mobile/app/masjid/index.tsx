@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ActivityIndicator, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Application from 'expo-application';
 import { useColors } from '@/hooks/useColors';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePrayer } from '@/context/PrayerContext';
@@ -34,18 +34,14 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-// Missing Android Maps metadata throws on the native UI thread, where a
-// JavaScript catch/error boundary cannot recover. Do not mount the native map
-// unless the static Expo config supplies the key used during native prebuild.
-// The Maps API key is embedded in the Android manifest by the build plugin,
-// rather than exposed in the JavaScript config. Only enable the native view in
-// binaries made after that configuration was added; OTA code can otherwise
-// reach an older binary that has no manifest metadata and crash on MapView
-// creation.
+// The key is native manifest metadata, not readable from JavaScript. Every
+// Android native build from version 11 onward is required to include it by
+// androidMapsCredentials. Older binaries and Expo Go must never mount MapView,
+// even if they receive a newer JS bundle through an OTA update.
 const ANDROID_MAPS_MIN_NATIVE_BUILD = 11;
 const androidMapsConfigured =
-  Constants.executionEnvironment === ExecutionEnvironment.Standalone &&
-  Number(Constants.nativeBuildVersion ?? 0) >= ANDROID_MAPS_MIN_NATIVE_BUILD;
+  Application.applicationId === 'com.deenodunya.planner' &&
+  Number(Application.nativeBuildVersion ?? 0) >= ANDROID_MAPS_MIN_NATIVE_BUILD;
 const embeddedMapEnabled =
   Platform.OS === 'ios' || (Platform.OS === 'android' && androidMapsConfigured);
 
