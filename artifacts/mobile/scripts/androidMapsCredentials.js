@@ -13,6 +13,12 @@ module.exports = function androidMapsCredentials(config) {
     if (key) {
       metadata.push({ $: { 'android:name': name, 'android:value': key } });
     } else {
+      if (process.env.EAS_BUILD_PROFILE === 'production') {
+        throw new Error(
+          '[Android Maps] Production Android builds require GOOGLE_MAPS_ANDROID_API_KEY. ' +
+          'The build was stopped to avoid shipping a binary that crashes when opening the map.',
+        );
+      }
       console.warn('[Android Maps] No build-time key supplied; keep the embedded-map fallback enabled.');
     }
     application['meta-data'] = metadata;
